@@ -2,7 +2,7 @@ import { ArrowRightOutlined, FileTextOutlined, PlaySquareOutlined, SoundOutlined
 import { Button, Card, Col, Row, Space, Spin, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { assetsApi, notesApi } from '../../services'
+import { assetsApi, moviesApi, musicApi, notesApi } from '../../services'
 
 const mediaCategories = [
   { id: 'photos', title: '照片', description: '管理图片和摄影作品', icon: <FileTextOutlined />, kind: 'image', route: '/media/photos', bg: '#eff6ff', color: '#2563eb' },
@@ -21,6 +21,10 @@ export function MediaPage() {
       mediaCategories.map((item) =>
         item.id === 'notes'
           ? notesApi.count().then((row) => ({ total: row.total }))
+          : item.id === 'movies'
+            ? moviesApi.count().then((row) => ({ total: row.total }))
+            : item.id === 'music'
+              ? musicApi.count().then((row) => ({ total: row.total }))
           : assetsApi.list({ kind: item.kind, page: 1, page_size: 1 }).then((row) => ({ total: row.meta.total })),
       ),
     )

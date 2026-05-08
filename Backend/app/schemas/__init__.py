@@ -23,6 +23,13 @@ from app.schemas.tag import TagCreate, TagOut
 from app.schemas.asset import AssetOut, AssetListItem
 from app.schemas.audit import AuditLogOut
 from app.schemas.link import LinkCreate, LinkOut, LinkReorder, LinkUpdate
+from app.schemas.movie import MovieCount, MovieCreate, MovieOut, MovieUpdate
+from app.schemas.music import (
+    MusicTrackCount,
+    MusicTrackCreate,
+    MusicTrackOut,
+    MusicTrackUpdate,
+)
 from app.schemas.note import NoteCount, NoteCreate, NoteOut, NoteUpdate
 from app.schemas.setting import SettingItem
 
@@ -60,6 +67,14 @@ __all__ = [
     "LinkOut",
     "LinkReorder",
     "LinkUpdate",
+    "MovieCount",
+    "MovieCreate",
+    "MovieOut",
+    "MovieUpdate",
+    "MusicTrackCount",
+    "MusicTrackCreate",
+    "MusicTrackOut",
+    "MusicTrackUpdate",
     "NoteCount",
     "NoteCreate",
     "NoteOut",

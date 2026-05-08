@@ -16,6 +16,12 @@ class Perm:
     NOTE_READ = "note:read"
     NOTE_WRITE = "note:write"
     NOTE_DELETE = "note:delete"
+    MOVIE_READ = "movie:read"
+    MOVIE_WRITE = "movie:write"
+    MOVIE_DELETE = "movie:delete"
+    MUSIC_READ = "music:read"
+    MUSIC_WRITE = "music:write"
+    MUSIC_DELETE = "music:delete"
 
     CATEGORY_WRITE = "category:write"
     TAG_WRITE = "tag:write"
@@ -41,6 +47,12 @@ ALL_PERMISSIONS: list[str] = [
     Perm.NOTE_READ,
     Perm.NOTE_WRITE,
     Perm.NOTE_DELETE,
+    Perm.MOVIE_READ,
+    Perm.MOVIE_WRITE,
+    Perm.MOVIE_DELETE,
+    Perm.MUSIC_READ,
+    Perm.MUSIC_WRITE,
+    Perm.MUSIC_DELETE,
     Perm.CATEGORY_WRITE,
     Perm.TAG_WRITE,
     Perm.LINK_WRITE,
@@ -63,6 +75,12 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         Perm.NOTE_READ,
         Perm.NOTE_WRITE,
         Perm.NOTE_DELETE,
+        Perm.MOVIE_READ,
+        Perm.MOVIE_WRITE,
+        Perm.MOVIE_DELETE,
+        Perm.MUSIC_READ,
+        Perm.MUSIC_WRITE,
+        Perm.MUSIC_DELETE,
         Perm.CATEGORY_WRITE,
         Perm.TAG_WRITE,
         Perm.LINK_WRITE,
@@ -74,10 +92,16 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         Perm.ASSET_WRITE,
         Perm.NOTE_READ,
         Perm.NOTE_WRITE,
+        Perm.MOVIE_READ,
+        Perm.MOVIE_WRITE,
+        Perm.MUSIC_READ,
+        Perm.MUSIC_WRITE,
     ],
     "viewer": [
         Perm.ARTICLE_READ,
         Perm.ASSET_READ,
         Perm.NOTE_READ,
+        Perm.MOVIE_READ,
+        Perm.MUSIC_READ,
     ],
 }

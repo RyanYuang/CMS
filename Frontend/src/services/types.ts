@@ -302,3 +302,99 @@ export type NoteListQuery = {
   page?: number
   page_size?: number
 }
+
+export type Movie = {
+  id: number
+  title: string
+  original_title: string | null
+  director: string | null
+  cast: string[]
+  genres: string[]
+  year: number | null
+  duration_minutes: number | null
+  rating: string | null
+  synopsis: string
+  cover_url: string | null
+  video_url: string | null
+  tags: string[]
+  pinned: boolean
+  owner_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export type MovieCreate = {
+  title: string
+  original_title?: string | null
+  director?: string | null
+  cast?: string[]
+  genres?: string[]
+  year?: number | null
+  duration_minutes?: number | null
+  rating?: string | null
+  synopsis?: string
+  cover_url?: string | null
+  video_url?: string | null
+  tags?: string[]
+  pinned?: boolean
+}
+
+export type MovieUpdate = Partial<MovieCreate>
+
+export type MovieCount = {
+  total: number
+}
+
+export type MovieListQuery = {
+  keyword?: string
+  genre?: string
+  year?: number
+  pinned?: boolean
+  page?: number
+  page_size?: number
+}
+
+export type MusicTrack = {
+  id: number
+  title: string
+  artist: string | null
+  album: string | null
+  genre: string | null
+  year: number | null
+  duration_seconds: number | null
+  cover_url: string | null
+  audio_url: string | null
+  tags: string[]
+  pinned: boolean
+  owner_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export type MusicTrackCreate = {
+  title: string
+  artist?: string | null
+  album?: string | null
+  genre?: string | null
+  year?: number | null
+  duration_seconds?: number | null
+  cover_url?: string | null
+  audio_url?: string | null
+  tags?: string[]
+  pinned?: boolean
+}
+
+export type MusicTrackUpdate = Partial<MusicTrackCreate>
+
+export type MusicTrackCount = {
+  total: number
+}
+
+export type MusicTrackListQuery = {
+  keyword?: string
+  genre?: string
+  year?: number
+  pinned?: boolean
+  page?: number
+  page_size?: number
+}

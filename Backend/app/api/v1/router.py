@@ -9,6 +9,8 @@ from app.api.v1 import (
     auth,
     categories,
     links,
+    movies,
+    music,
     notes,
     public,
     roles,
@@ -28,6 +30,8 @@ api_router.include_router(articles.router)
 api_router.include_router(assets.router)
 api_router.include_router(audit.router)
 api_router.include_router(links.router)
+api_router.include_router(movies.router)
+api_router.include_router(music.router)
 api_router.include_router(notes.router)
 api_router.include_router(setting_route.router)
 api_router.include_router(public.router)

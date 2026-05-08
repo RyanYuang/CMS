@@ -162,3 +162,62 @@ body,
 .cms-note-preview > * {
   margin: 0;
 }
+
+.cms-media-card {
+  overflow: hidden;
+}
+
+.cms-media-card .ant-card-actions {
+  background: #fff;
+}
+
+.cms-movie-cover {
+  position: relative;
+  height: 180px;
+  background: #000;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.cms-movie-cover-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cms-movie-cover-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.cms-movie-cover:hover .cms-movie-cover-mask {
+  opacity: 1;
+}
+
+.cms-movie-preview-video {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 10px;
+  background: #000;
+}
+
+.cms-music-icon-wrap {
+  width: 100%;
+  height: 140px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8edf5 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cms-music-icon {
+  font-size: 42px;
+  color: #1677ff;
+}

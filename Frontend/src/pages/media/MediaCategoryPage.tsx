@@ -1,148 +1,184 @@
-import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
-import { Button, Card, Col, Image, Pagination, Popconfirm, Row, Select, Space, Spin, Typography, Upload, message } from 'antd'
+import { ArrowLeftOutlined, DeleteOutlined, PictureOutlined, SearchOutlined, UploadOutlined } from '@ant-design/icons'
+import { App, Button, Card, Col, Empty, Image, Input, Row, Space, Spin, Typography, Upload } from 'antd'
 import type { UploadProps } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { assetsApi } from '../../services'
-import type { AssetItem, AssetKind } from '../../services'
+import type { AssetItem } from '../../services'
 import { hasPermission } from '../../utils/auth'
 
-const categoryMeta: Record<string, { title: string; description: string; kind: AssetKind }> = {
-  photos: { title: '照片', description: '管理图片和摄影资源', kind: 'image' },
-  movies: { title: '电影', description: '管理视频与影片文件', kind: 'video' },
-  music: { title: '音乐', description: '管理音频与音乐资源', kind: 'audio' },
-}
-
 export function MediaCategoryPage() {
-  const location = useLocation()
-  const category = useMemo(() => location.pathname.split('/').at(-1) ?? 'photos', [location.pathname])
-  const meta = categoryMeta[category] ?? categoryMeta.photos
-  const [kind, setKind] = useState<AssetKind>(meta.kind)
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(12)
+  const navigate = useNavigate()
+  const { message, modal } = App.useApp()
+  const [keyword, setKeyword] = useState('')
   const [rows, setRows] = useState<AssetItem[]>([])
-  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const canUpload = hasPermission('asset:write')
   const canDelete = hasPermission('asset:delete')
 
-  const loadAssets = useCallback((nextPage = page, nextSize = pageSize, nextKind = kind) => {
+  const loadAssets = useCallback((showLoading = true) => {
+    if (showLoading) {
+      setLoading(true)
+    }
     assetsApi
-      .list({ page: nextPage, page_size: nextSize, kind: nextKind })
+      .list({ page: 1, page_size: 200, kind: 'image' })
       .then((resp) => {
         setRows(resp.items)
-        setTotal(resp.meta.total)
       })
       .finally(() => setLoading(false))
-  }, [kind, page, pageSize])
+  }, [])
 
   useEffect(() => {
-    loadAssets(page, pageSize, kind)
-  }, [kind, loadAssets, page, pageSize])
+    let active = true
+    assetsApi
+      .list({ page: 1, page_size: 200, kind: 'image' })
+      .then((resp) => {
+        if (active) {
+          setRows(resp.items)
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false)
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
-  const removeAsset = async (id: number) => {
-    await assetsApi.remove(id)
-    message.success('文件已删除')
-    loadAssets()
+  const filtered = useMemo(() => {
+    const kw = keyword.trim().toLowerCase()
+    if (!kw) return rows
+    return rows.filter((item) => item.filename.toLowerCase().includes(kw) || item.mime_type.toLowerCase().includes(kw))
+  }, [keyword, rows])
+
+  const removeAsset = (item: AssetItem) => {
+    modal.confirm({
+      title: '确认删除该图片？',
+      content: '此操作无法撤销，将永久删除该图片文件。',
+      okText: '删除',
+      okButtonProps: { danger: true },
+      cancelText: '取消',
+      onOk: async () => {
+        setDeletingId(item.id)
+        try {
+          await assetsApi.remove(item.id)
+          setRows((prev) => prev.filter((row) => row.id !== item.id))
+          message.success('图片已删除')
+        } finally {
+          setDeletingId(null)
+        }
+      },
+    })
   }
 
   const uploadProps: UploadProps = {
+    accept: 'image/*',
     showUploadList: false,
     customRequest: ({ file, onSuccess, onError }) => {
+      setUploading(true)
       assetsApi
         .upload(file as File)
         .then(() => {
           onSuccess?.({})
           message.success('上传成功')
-          setPage(1)
-          loadAssets(1, pageSize, kind)
+          loadAssets()
         })
         .catch((error) => {
           onError?.(error as Error)
+          message.error('上传失败，请稍后重试')
         })
+        .finally(() => setUploading(false))
     },
   }
 
   return (
-    <Space direction="vertical" size={16} className="w-full">
+    <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="cms-card">
-        <Space className="w-full" style={{ justifyContent: 'space-between' }}>
-          <Space direction="vertical" size={4}>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {meta.title}管理
-            </Typography.Title>
-            <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
-              {meta.description}
-            </Typography.Paragraph>
-          </Space>
-          <Space>
-            <Select<AssetKind>
-              value={kind}
-              style={{ width: 180 }}
-              onChange={(nextKind) => {
-                setKind(nextKind)
-                setPage(1)
-              }}
-              options={[
-                { label: '图片', value: 'image' },
-                { label: '视频', value: 'video' },
-                { label: '音频', value: 'audio' },
-                { label: '文档', value: 'document' },
-                { label: '其他', value: 'other' },
-              ]}
+        <Space style={{ justifyContent: 'space-between', width: '100%' }} align="start">
+          <Space align="center" size={8}>
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate('/media')}
+              aria-label="返回"
             />
-            <Upload {...uploadProps}>
-              <Button icon={<UploadOutlined />} disabled={!canUpload}>
-                上传文件
-              </Button>
-            </Upload>
+            <Space direction="vertical" size={2}>
+              <Typography.Title level={3} style={{ margin: 0 }}>
+                照片管理
+              </Typography.Title>
+              <Typography.Paragraph type="secondary" style={{ margin: 0 }}>
+                管理图片和摄影资源
+              </Typography.Paragraph>
+            </Space>
           </Space>
+          <Upload {...uploadProps}>
+            <Button type="primary" icon={<UploadOutlined />} loading={uploading} disabled={!canUpload}>
+              上传图片
+            </Button>
+          </Upload>
         </Space>
       </Card>
-      {loading ? <Spin /> : null}
-      <Row gutter={[16, 16]}>
-        {rows.map((item) => (
-          <Col xs={24} md={12} xl={6} key={item.id}>
-            <Card
-              hoverable
-              className="cms-card"
-              cover={
-                item.kind === 'image' ? (
-                  <Image src={item.public_url} height={160} style={{ objectFit: 'cover' }} />
-                ) : undefined
-              }
-              actions={[
-                <Popconfirm
-                  key="delete"
-                  title="确认删除该文件？"
-                  onConfirm={() => void removeAsset(item.id)}
-                  disabled={!canDelete}
-                >
-                  <Button type="text" danger icon={<DeleteOutlined />} disabled={!canDelete} />
-                </Popconfirm>,
-              ]}
-            >
-              <Space direction="vertical" size={4}>
-                <Typography.Text strong ellipsis>
-                  {item.filename}
-                </Typography.Text>
-                <Typography.Text type="secondary">{item.mime_type}</Typography.Text>
-                <Typography.Text type="secondary">{item.size_bytes} bytes</Typography.Text>
-              </Space>
-            </Card>
-          </Col>
-        ))}
-      </Row>
-      <Pagination
-        current={page}
-        pageSize={pageSize}
-        total={total}
-        showSizeChanger
-        onChange={(nextPage, nextPageSize) => {
-          setPage(nextPage)
-          setPageSize(nextPageSize)
-        }}
-      />
+
+      <Card className="cms-card">
+        <Input
+          allowClear
+          size="large"
+          prefix={<SearchOutlined />}
+          placeholder="搜索图片名称或格式..."
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+        />
+      </Card>
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 48 }}>
+          <Spin />
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card className="cms-card" style={{ padding: '48px 0' }}>
+          <Empty
+            image={<PictureOutlined style={{ fontSize: 64, color: '#bfbfbf' }} />}
+            imageStyle={{ height: 80 }}
+            description={keyword.trim() ? '没有匹配的图片' : '还没有照片资源'}
+          />
+        </Card>
+      ) : (
+        <Row gutter={[16, 16]}>
+          {filtered.map((item) => (
+            <Col xs={24} md={12} lg={8} xl={6} key={item.id}>
+              <Card
+                hoverable
+                className="cms-card cms-media-card"
+                cover={<Image src={item.public_url} height={180} style={{ objectFit: 'cover' }} preview={false} />}
+                actions={[
+                  <Button
+                    key="delete"
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    loading={deletingId === item.id}
+                    disabled={!canDelete}
+                    onClick={() => removeAsset(item)}
+                  >
+                    删除
+                  </Button>,
+                ]}
+              >
+                <Space direction="vertical" size={4}>
+                  <Typography.Text strong ellipsis={{ tooltip: item.filename }}>
+                    {item.filename}
+                  </Typography.Text>
+                  <Typography.Text type="secondary">{item.mime_type}</Typography.Text>
+                </Space>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
     </Space>
   )
 }

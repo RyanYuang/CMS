@@ -11,6 +11,8 @@ import { LogsPage } from '../pages/logs/LogsPage'
 import { LinksPage } from '../pages/links/LinksPage'
 import { MediaPage } from '../pages/media/MediaPage'
 import { MediaCategoryPage } from '../pages/media/MediaCategoryPage'
+import { MoviesPage } from '../pages/media/MoviesPage'
+import { MusicPage } from '../pages/media/MusicPage'
 import { NotesPage } from '../pages/media/NotesPage'
 import { OrdersPage } from '../pages/orders/OrdersPage'
 import { ProfilePage } from '../pages/profile/ProfilePage'
@@ -69,8 +71,8 @@ export function AppRouter() {
         <Route path="orders" element={<OrdersPage />} />
         <Route path="media" element={<MediaPage />} />
         <Route path="media/photos" element={<MediaCategoryPage />} />
-        <Route path="media/movies" element={<MediaCategoryPage />} />
-        <Route path="media/music" element={<MediaCategoryPage />} />
+        <Route path="media/movies" element={<MoviesPage />} />
+        <Route path="media/music" element={<MusicPage />} />
         <Route path="media/notes" element={<NotesPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="roles" element={<RolesPage />} />
