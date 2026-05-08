@@ -50,6 +50,7 @@ class PublicMovieOut(BaseModel):
     synopsis: str
     cover_url: str | None
     video_url: str | None
+    stills: list[str]
     genres: list[str]
     tags: list[str]
     pinned: bool
@@ -178,6 +179,7 @@ async def public_movies(
             synopsis=movie.synopsis or "",
             cover_url=movie.cover_url,
             video_url=movie.video_url,
+            stills=_serialize_string_list(movie.stills),
             genres=_serialize_string_list(movie.genres),
             tags=_serialize_string_list(movie.tags),
             pinned=bool(movie.pinned),

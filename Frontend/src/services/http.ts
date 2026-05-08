@@ -58,8 +58,46 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (response) => response.data,
   (error) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7473/ingest/7897f39d-d50b-4fd8-bb95-8efbd575b269', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '308264' },
+      body: JSON.stringify({
+        sessionId: '308264',
+        runId: 'frontend-pre-fix',
+        hypothesisId: 'F3',
+        location: 'src/services/http.ts:response.error',
+        message: 'http interceptor caught error',
+        data: {
+          status: axios.isAxiosError(error) ? (error.response?.status ?? null) : null,
+          code: axios.isAxiosError(error) ? (error.code ?? null) : null,
+          requestPath: axios.isAxiosError(error) ? (error.config?.url ?? null) : null,
+          pathname: window.location.pathname,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       clearAuthStorage()
+      // #region agent log
+      fetch('http://127.0.0.1:7473/ingest/7897f39d-d50b-4fd8-bb95-8efbd575b269', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '308264' },
+        body: JSON.stringify({
+          sessionId: '308264',
+          runId: 'frontend-pre-fix',
+          hypothesisId: 'F4',
+          location: 'src/services/http.ts:response.error',
+          message: 'unauthorized redirect decision',
+          data: {
+            pathname: window.location.pathname,
+            redirectTo: '/login',
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {})
+      // #endregion
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }

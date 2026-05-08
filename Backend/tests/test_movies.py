@@ -22,6 +22,10 @@ async def test_movies_crud_pin_search(client: AsyncClient, auth_headers: dict[st
             "synopsis": "穿越虫洞寻找新家园",
             "cover_url": "https://example.com/interstellar.jpg",
             "video_url": "https://example.com/interstellar.mp4",
+            "stills": [
+                "https://example.com/interstellar-still-1.jpg",
+                "https://example.com/interstellar-still-2.webp",
+            ],
             "tags": ["nolan", "space"],
             "pinned": False,
         },
@@ -47,6 +51,10 @@ async def test_movies_crud_pin_search(client: AsyncClient, auth_headers: dict[st
     assert update.status_code == 200
     assert update.json()["duration_minutes"] == 170
     assert "classic" in update.json()["tags"]
+    assert update.json()["stills"] == [
+        "https://example.com/interstellar-still-1.jpg",
+        "https://example.com/interstellar-still-2.webp",
+    ]
 
     pin = await client.post(f"/api/v1/movies/{movie2_id}/pin", headers=auth_headers)
     assert pin.status_code == 200
@@ -79,6 +87,49 @@ async def test_movies_crud_pin_search(client: AsyncClient, auth_headers: dict[st
 
     after = await client.get(f"/api/v1/movies/{movie_id}", headers=auth_headers)
     assert after.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_movies_update_stills_and_public_order(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    create = await client.post(
+        "/api/v1/movies",
+        json={"title": "静帧测试片", "stills": ["https://example.com/a.jpg", "https://example.com/b.png"]},
+        headers=auth_headers,
+    )
+    assert create.status_code == 200, create.text
+    movie_id = create.json()["id"]
+
+    update = await client.patch(
+        f"/api/v1/movies/{movie_id}",
+        json={"stills": ["https://example.com/c.webp", "https://example.com/a.jpg"]},
+        headers=auth_headers,
+    )
+    assert update.status_code == 200, update.text
+    assert update.json()["stills"] == ["https://example.com/c.webp", "https://example.com/a.jpg"]
+
+    public_movies = await client.get("/api/v1/public/movies")
+    assert public_movies.status_code == 200
+    row = next((item for item in public_movies.json() if item["id"] == movie_id), None)
+    assert row is not None
+    assert row["stills"] == ["https://example.com/c.webp", "https://example.com/a.jpg"]
+
+
+@pytest.mark.asyncio
+async def test_movies_stills_validation(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    invalid_format = await client.post(
+        "/api/v1/movies",
+        json={"title": "格式错误", "stills": ["https://example.com/invalid.gif"]},
+        headers=auth_headers,
+    )
+    assert invalid_format.status_code == 422
+
+    too_many_stills = [f"https://example.com/{idx}.jpg" for idx in range(1, 22)]
+    invalid_count = await client.post(
+        "/api/v1/movies",
+        json={"title": "数量过多", "stills": too_many_stills},
+        headers=auth_headers,
+    )
+    assert invalid_count.status_code == 422
 
 
 @pytest.mark.asyncio

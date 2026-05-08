@@ -1,12 +1,14 @@
 import {
   ArrowLeftOutlined,
   DeleteOutlined,
+  DownOutlined,
   EditOutlined,
   PlayCircleOutlined,
   PlusOutlined,
   PushpinFilled,
   PushpinOutlined,
   SearchOutlined,
+  UpOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
 import {
@@ -26,7 +28,7 @@ import {
   Typography,
   Upload,
 } from 'antd'
-import type { UploadProps } from 'antd'
+import type { UploadFile, UploadProps } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { assetsApi, moviesApi } from '../../services'
@@ -37,7 +39,29 @@ import { formatDate } from '../../utils/format'
 type MovieFormValues = Omit<MovieCreate, 'cast' | 'genres' | 'tags'> & {
   cast?: string[]
   genres?: string[]
+  stills?: string[]
   tags?: string[]
+}
+
+const MOVIE_STILL_MAX_MB = 5
+const MOVIE_STILL_MAX_COUNT = 20
+const ALLOWED_STILL_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+const ensureStringArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).filter(Boolean)
+  }
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value)
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item)).filter(Boolean)
+      }
+    } catch {
+      return []
+    }
+  }
+  return []
 }
 
 export function MoviesPage() {
@@ -75,7 +99,7 @@ export function MoviesPage() {
   const openCreate = () => {
     setEditing(null)
     form.resetFields()
-    form.setFieldsValue({ title: '', synopsis: '', cast: [], genres: [], tags: [], pinned: false })
+    form.setFieldsValue({ title: '', synopsis: '', cast: [], genres: [], stills: [], tags: [], pinned: false })
     setModalOpen(true)
   }
 
@@ -86,15 +110,16 @@ export function MoviesPage() {
       title: movie.title,
       original_title: movie.original_title ?? undefined,
       director: movie.director ?? undefined,
-      cast: movie.cast,
-      genres: movie.genres,
+      cast: ensureStringArray(movie.cast),
+      genres: ensureStringArray(movie.genres),
       year: movie.year ?? undefined,
       duration_minutes: movie.duration_minutes ?? undefined,
       rating: movie.rating ?? undefined,
       synopsis: movie.synopsis,
       cover_url: movie.cover_url ?? undefined,
       video_url: movie.video_url ?? undefined,
-      tags: movie.tags,
+      stills: ensureStringArray(movie.stills),
+      tags: ensureStringArray(movie.tags),
       pinned: movie.pinned,
     })
     setModalOpen(true)
@@ -114,6 +139,7 @@ export function MoviesPage() {
       synopsis: values.synopsis ?? '',
       cover_url: values.cover_url?.trim() || null,
       video_url: values.video_url?.trim() || null,
+      stills: values.stills ?? [],
       tags: values.tags ?? [],
       pinned: Boolean(values.pinned),
     }
@@ -183,6 +209,103 @@ export function MoviesPage() {
         })
     },
   })
+
+  const stills = Form.useWatch('stills', form)
+  const stillsSafe = ensureStringArray(stills)
+  if (stills !== undefined && !Array.isArray(stills)) {
+    // #region agent log
+    fetch('http://127.0.0.1:7473/ingest/7897f39d-d50b-4fd8-bb95-8efbd575b269', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '308264' },
+      body: JSON.stringify({
+        sessionId: '308264',
+        runId: 'frontend-post-fix',
+        hypothesisId: 'F5',
+        location: 'src/pages/media/MoviesPage.tsx:stills.watch',
+        message: 'stills value is not an array, normalized',
+        data: { stillsType: typeof stills, stillsValue: String(stills).slice(0, 120) },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {})
+    // #endregion
+  }
+  const stillUploadFileList: UploadFile[] = stillsSafe.map((url, index) => ({
+    uid: `${index}-${url}`,
+    name: `still-${index + 1}`,
+    status: 'done',
+    url,
+  }))
+
+  const moveStill = (index: number, direction: 'up' | 'down') => {
+    const current = [...(form.getFieldValue('stills') ?? [])] as string[]
+    const target = direction === 'up' ? index - 1 : index + 1
+    if (target < 0 || target >= current.length) return
+    ;[current[index], current[target]] = [current[target], current[index]]
+    form.setFieldValue('stills', current)
+  }
+
+  const removeStill = (url: string) => {
+    const current = [...(form.getFieldValue('stills') ?? [])] as string[]
+    form.setFieldValue(
+      'stills',
+      current.filter((item) => item !== url),
+    )
+  }
+
+  const stillUploadProps: UploadProps = {
+    accept: 'image/jpeg,image/png,image/webp',
+    showUploadList: false,
+    beforeUpload: (file) => {
+      if (!ALLOWED_STILL_MIME_TYPES.has(file.type)) {
+        message.error('静帧仅支持 jpg/png/webp')
+        return Upload.LIST_IGNORE
+      }
+      const tooLarge = file.size > MOVIE_STILL_MAX_MB * 1024 * 1024
+      if (tooLarge) {
+        message.error(`单张静帧不能超过 ${MOVIE_STILL_MAX_MB}MB`)
+        return Upload.LIST_IGNORE
+      }
+      const current = (form.getFieldValue('stills') ?? []) as string[]
+      if (current.length >= MOVIE_STILL_MAX_COUNT) {
+        message.error(`静帧最多 ${MOVIE_STILL_MAX_COUNT} 张`)
+        return Upload.LIST_IGNORE
+      }
+      return true
+    },
+    customRequest: ({ file, onSuccess, onError }) => {
+      assetsApi
+        .upload(file as File)
+        .then((asset) => {
+          const rawCurrent = form.getFieldValue('stills')
+          const current = [...ensureStringArray(rawCurrent), asset.public_url]
+          // #region agent log
+          fetch('http://127.0.0.1:7473/ingest/7897f39d-d50b-4fd8-bb95-8efbd575b269', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '308264' },
+            body: JSON.stringify({
+              sessionId: '308264',
+              runId: 'frontend-post-fix',
+              hypothesisId: 'F6',
+              location: 'src/pages/media/MoviesPage.tsx:stillUploadProps.customRequest',
+              message: 'append still after upload',
+              data: {
+                rawType: typeof rawCurrent,
+                normalizedLength: current.length,
+                appendedUrl: asset.public_url,
+              },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {})
+          // #endregion
+          form.setFieldValue('stills', current)
+          onSuccess?.({})
+          message.success('静帧上传成功')
+        })
+        .catch((err) => {
+          onError?.(err as Error)
+        })
+    },
+  }
 
   const columns = [
     {
@@ -262,6 +385,9 @@ export function MoviesPage() {
 
       <Modal open={modalOpen} title={editing ? '编辑电影' : '添加电影'} onCancel={() => setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} width={760} destroyOnHidden>
         <Form form={form} layout="vertical" initialValues={{ pinned: false }}>
+          <Form.Item name="stills" hidden>
+            <Input />
+          </Form.Item>
           <Form.Item label="电影标题" name="title" rules={[{ required: true, message: '请输入电影标题' }]}>
             <Input maxLength={200} />
           </Form.Item>
@@ -277,6 +403,34 @@ export function MoviesPage() {
           <Form.Item><Upload {...uploadField('cover_url', 'image/*')}><Button icon={<UploadOutlined />}>上传封面</Button></Upload></Form.Item>
           <Form.Item label="视频 URL" name="video_url"><Input placeholder="https://..." /></Form.Item>
           <Form.Item><Upload {...uploadField('video_url', 'video/*')}><Button icon={<UploadOutlined />}>上传视频</Button></Upload></Form.Item>
+          <Form.Item label={`静帧（最多 ${MOVIE_STILL_MAX_COUNT} 张，单张 <= ${MOVIE_STILL_MAX_MB}MB）`}>
+            <Space direction="vertical" style={{ width: '100%' }} size={10}>
+              <Upload {...stillUploadProps}>
+                <Button icon={<UploadOutlined />}>上传静帧</Button>
+              </Upload>
+              {stillUploadFileList.length > 0 ? (
+                <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                  {stillUploadFileList.map((file, index) => (
+                    <Card key={file.uid} size="small">
+                      <Space style={{ justifyContent: 'space-between', width: '100%' }} align="center">
+                        <Space align="center">
+                          <Image src={file.url} width={88} height={56} style={{ objectFit: 'cover', borderRadius: 4 }} />
+                          <Typography.Text ellipsis style={{ maxWidth: 320 }}>{file.url}</Typography.Text>
+                        </Space>
+                        <Space>
+                          <Button icon={<UpOutlined />} size="small" disabled={index === 0} onClick={() => moveStill(index, 'up')} />
+                          <Button icon={<DownOutlined />} size="small" disabled={index === stillUploadFileList.length - 1} onClick={() => moveStill(index, 'down')} />
+                          <Button icon={<DeleteOutlined />} size="small" danger onClick={() => removeStill(file.url ?? '')} />
+                        </Space>
+                      </Space>
+                    </Card>
+                  ))}
+                </Space>
+              ) : (
+                <Typography.Text type="secondary">暂无静帧，可上传后拖动按钮调整顺序</Typography.Text>
+              )}
+            </Space>
+          </Form.Item>
           <Form.Item label="标签" name="tags"><Select mode="tags" placeholder="输入后回车添加" /></Form.Item>
         </Form>
       </Modal>

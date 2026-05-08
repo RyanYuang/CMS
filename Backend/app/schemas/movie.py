@@ -3,7 +3,26 @@
 from datetime import datetime
 from typing import List
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.config import settings
+
+_ALLOWED_STILL_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
+
+
+def _validate_stills(values: List[str]) -> List[str]:
+    if len(values) > settings.movie_still_max_count:
+        raise ValueError(f"静帧最多 {settings.movie_still_max_count} 张")
+    normalized: list[str] = []
+    for value in values:
+        still = (value or "").strip()
+        if not still:
+            continue
+        lower = still.split("?", 1)[0].lower()
+        if not lower.endswith(_ALLOWED_STILL_EXTENSIONS):
+            raise ValueError("静帧仅支持 jpg/png/webp 格式")
+        normalized.append(still)
+    return normalized
 
 
 class MovieCreate(BaseModel):
@@ -18,8 +37,14 @@ class MovieCreate(BaseModel):
     synopsis: str = Field(default="")
     cover_url: str | None = Field(default=None, max_length=500)
     video_url: str | None = Field(default=None, max_length=500)
+    stills: List[str] = Field(default_factory=list, max_length=settings.movie_still_max_count)
     tags: List[str] = Field(default_factory=list)
     pinned: bool = False
+
+    @field_validator("stills")
+    @classmethod
+    def validate_stills(cls, value: List[str]) -> List[str]:
+        return _validate_stills(value)
 
 
 class MovieUpdate(BaseModel):
@@ -34,8 +59,16 @@ class MovieUpdate(BaseModel):
     synopsis: str | None = None
     cover_url: str | None = Field(default=None, max_length=500)
     video_url: str | None = Field(default=None, max_length=500)
+    stills: List[str] | None = None
     tags: List[str] | None = None
     pinned: bool | None = None
+
+    @field_validator("stills")
+    @classmethod
+    def validate_stills(cls, value: List[str] | None) -> List[str] | None:
+        if value is None:
+            return None
+        return _validate_stills(value)
 
 
 class MovieOut(BaseModel):
@@ -52,6 +85,7 @@ class MovieOut(BaseModel):
     synopsis: str
     cover_url: str | None
     video_url: str | None
+    stills: List[str]
     tags: List[str]
     pinned: bool
     owner_id: int | None

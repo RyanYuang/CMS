@@ -316,6 +316,7 @@ export type Movie = {
   synopsis: string
   cover_url: string | null
   video_url: string | null
+  stills: string[]
   tags: string[]
   pinned: boolean
   owner_id: number | null
@@ -335,6 +336,7 @@ export type MovieCreate = {
   synopsis?: string
   cover_url?: string | null
   video_url?: string | null
+  stills?: string[]
   tags?: string[]
   pinned?: boolean
 }

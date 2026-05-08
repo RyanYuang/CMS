@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -10,6 +10,7 @@ from app.db import Base, SessionLocal, engine
 from app.models import Permission, Role, User
 from app.permissions import ALL_PERMISSIONS, DEFAULT_ROLES
 from app.security import hash_password
+from app.utils.debug_ndjson import debug_log
 
 
 async def _ensure_permissions(session: AsyncSession) -> dict[str, Permission]:
@@ -63,10 +64,67 @@ async def _ensure_admin(session: AsyncSession, roles: dict[str, Role]) -> None:
 
 async def init_db_and_seed() -> None:
     async with engine.begin() as conn:
+        # region agent log
+        debug_log(
+            run_id="pre-fix",
+            hypothesis_id="H1",
+            location="app/seed.py:init_db_and_seed",
+            message="init strategy and db target",
+            data={
+                "database_url": settings.database_url,
+                "init_strategy": "metadata.create_all",
+            },
+        )
+        # endregion
         await conn.run_sync(Base.metadata.create_all)
+        columns = (
+            await conn.execute(text("PRAGMA table_info('movies')"))
+        ).mappings().all()
+        # region agent log
+        debug_log(
+            run_id="pre-fix",
+            hypothesis_id="H2",
+            location="app/seed.py:init_db_and_seed",
+            message="movies table columns after create_all",
+            data={"columns": [str(col.get("name")) for col in columns]},
+        )
+        # endregion
+        column_names = {str(col.get("name")) for col in columns}
+        if "stills" not in column_names:
+            await conn.execute(
+                text("ALTER TABLE movies ADD COLUMN stills JSON NOT NULL DEFAULT '[]'")
+            )
+            columns_after_fix = (
+                await conn.execute(text("PRAGMA table_info('movies')"))
+            ).mappings().all()
+            # region agent log
+            debug_log(
+                run_id="post-fix",
+                hypothesis_id="H2",
+                location="app/seed.py:init_db_and_seed",
+                message="patched legacy movies schema by adding stills",
+                data={"columns": [str(col.get("name")) for col in columns_after_fix]},
+            )
+            # endregion
 
     async with SessionLocal() as session:
         try:
+            version_rows = []
+            try:
+                version_rows = (
+                    await session.execute(text("SELECT version_num FROM alembic_version"))
+                ).scalars().all()
+            except Exception as exc:  # pragma: no cover - debug instrumentation
+                version_rows = [f"error:{exc.__class__.__name__}:{exc}"]
+            # region agent log
+            debug_log(
+                run_id="pre-fix",
+                hypothesis_id="H3",
+                location="app/seed.py:init_db_and_seed",
+                message="alembic version state",
+                data={"alembic_versions": [str(v) for v in version_rows]},
+            )
+            # endregion
             perms = await _ensure_permissions(session)
             roles = await _ensure_roles(session, perms)
             await _ensure_admin(session, roles)

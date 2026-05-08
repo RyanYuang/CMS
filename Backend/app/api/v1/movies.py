@@ -12,6 +12,7 @@ from app.permissions import Perm
 from app.schemas import MovieCount, MovieCreate, MovieOut, MovieUpdate, OkResponse
 from app.schemas.common import Page
 from app.services import audit
+from app.utils.debug_ndjson import debug_log
 from app.utils.pagination import PageParams, build_page_meta, page_params
 
 router = APIRouter(prefix="/movies", tags=["movies"])
@@ -39,6 +40,7 @@ def _to_out(movie: Movie) -> MovieOut:
         synopsis=movie.synopsis or "",
         cover_url=movie.cover_url,
         video_url=movie.video_url,
+        stills=_serialize_list(movie.stills),
         tags=_serialize_list(movie.tags),
         pinned=bool(movie.pinned),
         owner_id=movie.owner_id,
@@ -92,7 +94,36 @@ async def list_movies(
     stmt = stmt.order_by(Movie.pinned.desc(), Movie.updated_at.desc(), Movie.id.desc())
     stmt = stmt.offset(pp.offset).limit(pp.page_size)
 
-    rows = (await session.execute(stmt)).scalars().all()
+    # region agent log
+    debug_log(
+        run_id="pre-fix",
+        hypothesis_id="H4",
+        location="app/api/v1/movies.py:list_movies",
+        message="list_movies query params and selected columns",
+        data={
+            "page": pp.page,
+            "page_size": pp.page_size,
+            "keyword": keyword,
+            "genre": genre,
+            "year": year,
+            "pinned": pinned,
+            "selected_columns": [str(c.key) for c in Movie.__table__.columns],
+        },
+    )
+    # endregion
+    try:
+        rows = (await session.execute(stmt)).scalars().all()
+    except Exception as exc:
+        # region agent log
+        debug_log(
+            run_id="pre-fix",
+            hypothesis_id="H5",
+            location="app/api/v1/movies.py:list_movies",
+            message="list_movies failed before count query",
+            data={"error_type": exc.__class__.__name__, "error": str(exc)},
+        )
+        # endregion
+        raise
     total = (await session.execute(count_stmt)).scalar_one()
 
     return Page[MovieOut](items=[_to_out(row) for row in rows], meta=build_page_meta(pp, total))
@@ -131,6 +162,7 @@ async def create_movie(
         synopsis=body.synopsis or "",
         cover_url=body.cover_url or None,
         video_url=body.video_url or None,
+        stills=list(body.stills or []),
         tags=list(body.tags or []),
         pinned=bool(body.pinned),
         owner_id=user.id,
@@ -185,6 +217,8 @@ async def update_movie(
         movie.cover_url = payload["cover_url"] or None
     if "video_url" in payload:
         movie.video_url = payload["video_url"] or None
+    if "stills" in payload and payload["stills"] is not None:
+        movie.stills = list(payload["stills"])
     if "tags" in payload and payload["tags"] is not None:
         movie.tags = list(payload["tags"])
     if "pinned" in payload and payload["pinned"] is not None:

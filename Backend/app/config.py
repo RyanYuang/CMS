@@ -45,6 +45,8 @@ class Settings(BaseSettings):
 
     upload_dir: str = "./var/uploads"
     max_upload_mb: int = 20
+    movie_still_max_mb: int = 5
+    movie_still_max_count: int = 20
     public_base_url: str = "http://localhost:8000"
 
     rate_limit_default: str = "120/minute"

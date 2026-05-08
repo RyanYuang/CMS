@@ -26,6 +26,7 @@ class Movie(Base):
     synopsis: Mapped[str] = mapped_column(Text, nullable=False, default="")
     cover_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    stills: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 
