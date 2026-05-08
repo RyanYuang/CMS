@@ -107,3 +107,37 @@ async def test_viewer_cannot_write_music(client: AsyncClient, auth_headers: dict
 
     write_resp = await client.post("/api/v1/music", json={"title": "viewer music"}, headers=viewer_headers)
     assert write_resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_music_create_normalizes_netease_share_url(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    share = "https://music.163.com/#/playlist?id=9345473"
+    create = await client.post(
+        "/api/v1/music",
+        json={
+            "title": "专辑入口测试",
+            "audio_url": share,
+        },
+        headers=auth_headers,
+    )
+    assert create.status_code == 200, create.text
+    assert create.json()["audio_url"] == "https://music.163.com/playlist?id=9345473"
+
+
+@pytest.mark.asyncio
+async def test_music_update_normalizes_album_field(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    create = await client.post(
+        "/api/v1/music",
+        json={"title": "规范化专辑字段", "album": "临时名"},
+        headers=auth_headers,
+    )
+    assert create.status_code == 200
+    track_id = create.json()["id"]
+
+    patch = await client.patch(
+        f"/api/v1/music/{track_id}",
+        json={"album": "https://music.163.com/playlist/12345"},
+        headers=auth_headers,
+    )
+    assert patch.status_code == 200
+    assert patch.json()["album"] == "https://music.163.com/playlist?id=12345"

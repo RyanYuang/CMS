@@ -12,6 +12,7 @@ from app.permissions import Perm
 from app.schemas import MusicTrackCount, MusicTrackCreate, MusicTrackOut, MusicTrackUpdate, OkResponse
 from app.schemas.common import Page
 from app.services import audit
+from app.utils.netease import normalize_netease_playlist_link_field
 from app.utils.pagination import PageParams, build_page_meta, page_params
 
 router = APIRouter(prefix="/music", tags=["music"])
@@ -114,12 +115,12 @@ async def create_music(
     track = MusicTrack(
         title=body.title.strip(),
         artist=body.artist or None,
-        album=body.album or None,
+        album=normalize_netease_playlist_link_field(body.album),
         genre=body.genre or None,
         year=body.year,
         duration_seconds=body.duration_seconds,
         cover_url=body.cover_url or None,
-        audio_url=body.audio_url or None,
+        audio_url=normalize_netease_playlist_link_field(body.audio_url),
         tags=list(body.tags or []),
         pinned=bool(body.pinned),
         owner_id=user.id,
@@ -157,7 +158,7 @@ async def update_music(
     if "artist" in payload:
         track.artist = payload["artist"] or None
     if "album" in payload:
-        track.album = payload["album"] or None
+        track.album = normalize_netease_playlist_link_field(payload["album"]) if payload["album"] else None
     if "genre" in payload:
         track.genre = payload["genre"] or None
     if "year" in payload:
@@ -167,7 +168,7 @@ async def update_music(
     if "cover_url" in payload:
         track.cover_url = payload["cover_url"] or None
     if "audio_url" in payload:
-        track.audio_url = payload["audio_url"] or None
+        track.audio_url = normalize_netease_playlist_link_field(payload["audio_url"]) if payload["audio_url"] else None
     if "tags" in payload and payload["tags"] is not None:
         track.tags = list(payload["tags"])
     if "pinned" in payload and payload["pinned"] is not None:

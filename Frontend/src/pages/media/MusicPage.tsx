@@ -229,13 +229,25 @@ export function MusicPage() {
         <Form form={form} layout="vertical" initialValues={{ pinned: false }}>
           <Form.Item label="歌曲标题" name="title" rules={[{ required: true, message: '请输入歌曲标题' }]}><Input maxLength={200} /></Form.Item>
           <Form.Item label="艺人" name="artist"><Input maxLength={200} /></Form.Item>
-          <Form.Item label="专辑" name="album"><Input maxLength={200} /></Form.Item>
+          <Form.Item
+            label="专辑"
+            name="album"
+            extra="填写专辑名即可；若用于网易云播放器，请改填下方“音频 URL”为网易云歌单分享链接。"
+          >
+            <Input maxLength={200} placeholder="专辑名称（可选）" />
+          </Form.Item>
           <Form.Item label="流派" name="genre"><Input maxLength={80} /></Form.Item>
           <Form.Item label="年份" name="year"><InputNumber min={1900} max={2100} style={{ width: '100%' }} /></Form.Item>
           <Form.Item label="时长（秒）" name="duration_seconds"><InputNumber min={1} style={{ width: '100%' }} /></Form.Item>
           <Form.Item label="封面 URL" name="cover_url"><Input placeholder="https://..." /></Form.Item>
           <Form.Item><Upload {...uploadField('cover_url', 'image/*')}><Button icon={<UploadOutlined />}>上传封面</Button></Upload></Form.Item>
-          <Form.Item label="音频 URL" name="audio_url"><Input placeholder="https://..." /></Form.Item>
+          <Form.Item
+            label="音频 URL"
+            name="audio_url"
+            extra="可填直连音频地址；若前台使用网易云播放器，请粘贴“歌单分享链接”（会规范为 music.163.com/playlist?id=…）。163 短链需先展开为完整链接。"
+          >
+            <Input placeholder="https://... 或网易云歌单分享链接" />
+          </Form.Item>
           <Form.Item><Upload {...uploadField('audio_url', 'audio/*')}><Button icon={<UploadOutlined />}>上传音频</Button></Upload></Form.Item>
           <Form.Item label="标签" name="tags"><Select mode="tags" placeholder="输入后回车添加" /></Form.Item>
         </Form>
