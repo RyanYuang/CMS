@@ -77,35 +77,36 @@ async def init_db_and_seed() -> None:
         )
         # endregion
         await conn.run_sync(Base.metadata.create_all)
-        columns = (
-            await conn.execute(text("PRAGMA table_info('movies')"))
-        ).mappings().all()
-        # region agent log
-        debug_log(
-            run_id="pre-fix",
-            hypothesis_id="H2",
-            location="app/seed.py:init_db_and_seed",
-            message="movies table columns after create_all",
-            data={"columns": [str(col.get("name")) for col in columns]},
-        )
-        # endregion
-        column_names = {str(col.get("name")) for col in columns}
-        if "stills" not in column_names:
-            await conn.execute(
-                text("ALTER TABLE movies ADD COLUMN stills JSON NOT NULL DEFAULT '[]'")
-            )
-            columns_after_fix = (
+        if settings.database_url.startswith("sqlite"):
+            columns = (
                 await conn.execute(text("PRAGMA table_info('movies')"))
             ).mappings().all()
             # region agent log
             debug_log(
-                run_id="post-fix",
+                run_id="pre-fix",
                 hypothesis_id="H2",
                 location="app/seed.py:init_db_and_seed",
-                message="patched legacy movies schema by adding stills",
-                data={"columns": [str(col.get("name")) for col in columns_after_fix]},
+                message="movies table columns after create_all",
+                data={"columns": [str(col.get("name")) for col in columns]},
             )
             # endregion
+            column_names = {str(col.get("name")) for col in columns}
+            if "stills" not in column_names:
+                await conn.execute(
+                    text("ALTER TABLE movies ADD COLUMN stills JSON NOT NULL DEFAULT '[]'")
+                )
+                columns_after_fix = (
+                    await conn.execute(text("PRAGMA table_info('movies')"))
+                ).mappings().all()
+                # region agent log
+                debug_log(
+                    run_id="post-fix",
+                    hypothesis_id="H2",
+                    location="app/seed.py:init_db_and_seed",
+                    message="patched legacy movies schema by adding stills",
+                    data={"columns": [str(col.get("name")) for col in columns_after_fix]},
+                )
+                # endregion
 
     async with SessionLocal() as session:
         try:

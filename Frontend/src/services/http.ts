@@ -98,8 +98,9 @@ http.interceptors.response.use(
         }),
       }).catch(() => {})
       // #endregion
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+      const loginPath = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/login`
+      if (window.location.pathname !== loginPath) {
+        window.location.href = loginPath
       }
     }
     const msg = extractApiErrorMessage(error)
