@@ -38,8 +38,24 @@ def test_parse_netease_playlist_id_returns_none(raw: str) -> None:
 
 def test_normalize_rewrites_to_canonical_playlist_url() -> None:
     assert normalize_netease_playlist_link_field("https://music.163.com/#/playlist?id=9345473") == (
-        "https://music.163.com/playlist?id=9345473"
+        '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=330 '
+        'height=450 src="//music.163.com/outchain/player?type=0&id=9345473&auto=1&height=430"></iframe>'
     )
+
+
+def test_normalize_rewrites_album_url_to_iframe() -> None:
+    assert normalize_netease_playlist_link_field("https://music.163.com/album?id=373821573") == (
+        '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=330 '
+        'height=450 src="//music.163.com/outchain/player?type=1&id=373821573&auto=1&height=430"></iframe>'
+    )
+
+
+def test_normalize_preserves_iframe_outchain() -> None:
+    raw = (
+        '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=330 height=450 '
+        'src="//music.163.com/outchain/player?type=0&id=9345473&auto=1&height=430"></iframe>'
+    )
+    assert normalize_netease_playlist_link_field(raw) == raw
 
 
 def test_normalize_preserves_non_netease_urls() -> None:

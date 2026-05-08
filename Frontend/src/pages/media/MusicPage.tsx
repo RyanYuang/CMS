@@ -34,6 +34,18 @@ import type { MusicTrack, MusicTrackCreate } from '../../services'
 import { hasPermission } from '../../utils/auth'
 import { formatDate } from '../../utils/format'
 
+const NETEASE_IFRAME_SRC_RE = /<iframe\b[^>]*\bsrc=(['"])([^"']+)\1[^>]*>\s*<\/iframe>/i
+
+function extractIframeSrc(value?: string | null): string | null {
+  if (!value) return null
+  const match = value.trim().match(NETEASE_IFRAME_SRC_RE)
+  if (!match?.[2]) return null
+  const src = match[2].trim()
+  if (!src) return null
+  if (src.startsWith('//')) return `https:${src}`
+  return src
+}
+
 export function MusicPage() {
   const navigate = useNavigate()
   const { message, modal } = App.useApp()
@@ -232,7 +244,7 @@ export function MusicPage() {
           <Form.Item
             label="专辑"
             name="album"
-            extra="填写专辑名即可；若用于网易云播放器，请改填下方“音频 URL”为网易云歌单分享链接。"
+            extra="可填普通专辑名。若需展示网易云播放器，请在下方“音频 URL”粘贴 iframe 代码。"
           >
             <Input maxLength={200} placeholder="专辑名称（可选）" />
           </Form.Item>
@@ -244,9 +256,9 @@ export function MusicPage() {
           <Form.Item
             label="音频 URL"
             name="audio_url"
-            extra="可填直连音频地址；若前台使用网易云播放器，请粘贴“歌单分享链接”（会规范为 music.163.com/playlist?id=…）。163 短链需先展开为完整链接。"
+            extra="支持两种格式：1) 直连音频 URL；2) 网易云 iframe 代码（推荐）。前台会自动识别并渲染播放器。"
           >
-            <Input placeholder="https://... 或网易云歌单分享链接" />
+            <Input placeholder="https://... 或 <iframe ...></iframe>" />
           </Form.Item>
           <Form.Item><Upload {...uploadField('audio_url', 'audio/*')}><Button icon={<UploadOutlined />}>上传音频</Button></Upload></Form.Item>
           <Form.Item label="标签" name="tags"><Select mode="tags" placeholder="输入后回车添加" /></Form.Item>
@@ -254,7 +266,27 @@ export function MusicPage() {
       </Modal>
 
       <Modal open={Boolean(playing)} title={playing?.title ?? '播放'} onCancel={() => setPlaying(null)} footer={null} destroyOnHidden>
-        {playing?.audio_url ? <audio src={playing.audio_url} controls autoPlay style={{ width: '100%' }} /> : <Empty description="暂无音频地址" />}
+        {(() => {
+          const iframeSrc = extractIframeSrc(playing?.audio_url)
+          if (iframeSrc) {
+            return (
+              <iframe
+                title="netease-player"
+                src={iframeSrc}
+                width={330}
+                height={450}
+                frameBorder="no"
+                style={{ width: '100%', border: 0 }}
+                allow="autoplay"
+              />
+            )
+          }
+          return playing?.audio_url ? (
+            <audio src={playing.audio_url} controls autoPlay style={{ width: '100%' }} />
+          ) : (
+            <Empty description="暂无音频地址" />
+          )
+        })()}
       </Modal>
     </Space>
   )

@@ -121,7 +121,10 @@ async def test_music_create_normalizes_netease_share_url(client: AsyncClient, au
         headers=auth_headers,
     )
     assert create.status_code == 200, create.text
-    assert create.json()["audio_url"] == "https://music.163.com/playlist?id=9345473"
+    assert create.json()["audio_url"] == (
+        '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=330 '
+        'height=450 src="//music.163.com/outchain/player?type=0&id=9345473&auto=1&height=430"></iframe>'
+    )
 
 
 @pytest.mark.asyncio
@@ -140,4 +143,7 @@ async def test_music_update_normalizes_album_field(client: AsyncClient, auth_hea
         headers=auth_headers,
     )
     assert patch.status_code == 200
-    assert patch.json()["album"] == "https://music.163.com/playlist?id=12345"
+    assert patch.json()["album"] == (
+        '<iframe frameborder="no" border="0" marginwidth="0" marginheight="0" width=330 '
+        'height=450 src="//music.163.com/outchain/player?type=0&id=12345&auto=1&height=430"></iframe>'
+    )
