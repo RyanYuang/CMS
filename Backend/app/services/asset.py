@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import io
+import re
 import secrets
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO
