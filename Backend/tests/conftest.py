@@ -38,7 +38,7 @@ from app.main import create_app  # noqa: E402
 from app.seed import init_db_and_seed  # noqa: E402
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session", loop_scope="session", autouse=True)
 async def _prepare_db() -> AsyncIterator[None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

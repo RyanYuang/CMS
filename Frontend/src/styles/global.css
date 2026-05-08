@@ -105,3 +105,60 @@ body,
   font-size: 12px;
   padding: 16px;
 }
+
+.cms-markdown :where(h1, h2, h3, h4, h5, h6) {
+  margin: 0.6em 0 0.4em;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.cms-markdown h1 { font-size: 1.4em; }
+.cms-markdown h2 { font-size: 1.25em; }
+.cms-markdown h3 { font-size: 1.1em; }
+.cms-markdown p { margin: 0.4em 0; }
+.cms-markdown ul,
+.cms-markdown ol { padding-left: 1.4em; margin: 0.4em 0; }
+.cms-markdown code {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+}
+.cms-markdown pre {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+.cms-markdown pre code {
+  background: transparent;
+  padding: 0;
+}
+.cms-markdown blockquote {
+  border-left: 3px solid #e5e5e5;
+  margin: 0.4em 0;
+  padding: 0 12px;
+  color: #595959;
+}
+.cms-markdown a { color: #1677ff; text-decoration: none; }
+.cms-markdown a:hover { text-decoration: underline; }
+.cms-markdown table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+}
+.cms-markdown th,
+.cms-markdown td {
+  border: 1px solid #e5e5e5;
+  padding: 4px 8px;
+}
+
+.cms-note-card {
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+.cms-note-card:hover {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
+}
+.cms-note-preview > * {
+  margin: 0;
+}

@@ -269,3 +269,36 @@ export type TagCreate = {
   name: string
   slug?: string | null
 }
+
+export type Note = {
+  id: number
+  title: string
+  content: string
+  category: string | null
+  pinned: boolean
+  tags: string[]
+  owner_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+export type NoteCreate = {
+  title: string
+  content?: string
+  category?: string | null
+  pinned?: boolean
+  tags?: string[]
+}
+
+export type NoteUpdate = Partial<NoteCreate>
+
+export type NoteCount = {
+  total: number
+}
+
+export type NoteListQuery = {
+  keyword?: string
+  category?: string
+  page?: number
+  page_size?: number
+}

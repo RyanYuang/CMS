@@ -1,11 +1,13 @@
-import { ConfigProvider } from 'antd'
+import { App as AntdApp, ConfigProvider } from 'antd'
 import { AppRouter } from './router'
 import { appTheme } from './styles/theme'
 
 function App() {
   return (
     <ConfigProvider theme={appTheme}>
-      <AppRouter />
+      <AntdApp>
+        <AppRouter />
+      </AntdApp>
     </ConfigProvider>
   )
 }

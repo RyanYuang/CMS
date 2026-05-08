@@ -2,7 +2,7 @@ import { ArrowRightOutlined, FileTextOutlined, PlaySquareOutlined, SoundOutlined
 import { Button, Card, Col, Row, Space, Spin, Typography } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { assetsApi } from '../../services'
+import { assetsApi, notesApi } from '../../services'
 
 const mediaCategories = [
   { id: 'photos', title: '照片', description: '管理图片和摄影作品', icon: <FileTextOutlined />, kind: 'image', route: '/media/photos', bg: '#eff6ff', color: '#2563eb' },
@@ -18,12 +18,16 @@ export function MediaPage() {
 
   useEffect(() => {
     Promise.all(
-      mediaCategories.map((item) => assetsApi.list({ kind: item.kind, page: 1, page_size: 1 })),
+      mediaCategories.map((item) =>
+        item.id === 'notes'
+          ? notesApi.count().then((row) => ({ total: row.total }))
+          : assetsApi.list({ kind: item.kind, page: 1, page_size: 1 }).then((row) => ({ total: row.meta.total })),
+      ),
     )
       .then((resp) => {
         const next: Record<string, number> = {}
         resp.forEach((row, index) => {
-          next[mediaCategories[index].id] = row.meta.total
+          next[mediaCategories[index].id] = row.total
         })
         setCountMap(next)
       })

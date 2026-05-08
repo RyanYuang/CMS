@@ -9,6 +9,7 @@ from app.api.v1 import (
     auth,
     categories,
     links,
+    notes,
     public,
     roles,
     settings as setting_route,
@@ -27,5 +28,6 @@ api_router.include_router(articles.router)
 api_router.include_router(assets.router)
 api_router.include_router(audit.router)
 api_router.include_router(links.router)
+api_router.include_router(notes.router)
 api_router.include_router(setting_route.router)
 api_router.include_router(public.router)

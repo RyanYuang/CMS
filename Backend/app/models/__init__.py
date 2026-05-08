@@ -5,6 +5,7 @@ from app.models.asset import Asset, AssetKind
 from app.models.audit_log import AuditAction, AuditLog
 from app.models.category import Category
 from app.models.link import LinkItem, LinkStatus
+from app.models.note import Note
 from app.models.role import Permission, Role, role_permissions
 from app.models.setting import SiteSetting
 from app.models.tag import Tag
@@ -22,6 +23,7 @@ __all__ = [
     "Category",
     "LinkItem",
     "LinkStatus",
+    "Note",
     "Permission",
     "Role",
     "role_permissions",

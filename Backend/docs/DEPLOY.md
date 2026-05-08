@@ -100,3 +100,25 @@ server {
     }
 }
 ```
+
+## 9. 与 Leowongwebsite（前台）对接要点
+
+### public_base_url（决定图片 public_url 域名）
+
+CMS 上传图片后会在资源表生成 `public_url`（例如 `https://api.example.com/static/uploads/...`）。
+因此生产环境务必在 `.env` 设置：
+
+- `PUBLIC_BASE_URL=https://api.your-domain.com`
+
+否则前台会拿到 `http://localhost:8000/...` 这样的地址，线上无法访问。
+
+### cors_origins（决定前台能否调用公开 API）
+
+如果前台与 CMS API **同域**，通常不需要额外配置。
+如果 **不同域名/端口**，需要把前台来源加入：
+
+- `CORS_ORIGINS=["https://www.your-frontend.com", "..."]`
+
+公开 API 示例：
+
+- `GET /api/v1/public/assets?kind=image&limit=500`

@@ -13,6 +13,10 @@ class Perm:
     ASSET_WRITE = "asset:write"
     ASSET_DELETE = "asset:delete"
 
+    NOTE_READ = "note:read"
+    NOTE_WRITE = "note:write"
+    NOTE_DELETE = "note:delete"
+
     CATEGORY_WRITE = "category:write"
     TAG_WRITE = "tag:write"
     LINK_WRITE = "link:write"
@@ -34,6 +38,9 @@ ALL_PERMISSIONS: list[str] = [
     Perm.ASSET_READ,
     Perm.ASSET_WRITE,
     Perm.ASSET_DELETE,
+    Perm.NOTE_READ,
+    Perm.NOTE_WRITE,
+    Perm.NOTE_DELETE,
     Perm.CATEGORY_WRITE,
     Perm.TAG_WRITE,
     Perm.LINK_WRITE,
@@ -53,6 +60,9 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         Perm.ARTICLE_PUBLISH,
         Perm.ASSET_READ,
         Perm.ASSET_WRITE,
+        Perm.NOTE_READ,
+        Perm.NOTE_WRITE,
+        Perm.NOTE_DELETE,
         Perm.CATEGORY_WRITE,
         Perm.TAG_WRITE,
         Perm.LINK_WRITE,
@@ -62,9 +72,12 @@ DEFAULT_ROLES: dict[str, list[str]] = {
         Perm.ARTICLE_WRITE,
         Perm.ASSET_READ,
         Perm.ASSET_WRITE,
+        Perm.NOTE_READ,
+        Perm.NOTE_WRITE,
     ],
     "viewer": [
         Perm.ARTICLE_READ,
         Perm.ASSET_READ,
+        Perm.NOTE_READ,
     ],
 }
