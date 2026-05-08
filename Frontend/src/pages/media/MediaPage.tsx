@@ -1,16 +1,36 @@
 import { ArrowRightOutlined, FileTextOutlined, PlaySquareOutlined, SoundOutlined } from '@ant-design/icons'
-import { Button, Card, Col, Row, Space, Typography } from 'antd'
+import { Button, Card, Col, Row, Space, Spin, Typography } from 'antd'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { assetsApi } from '../../services'
 
 const mediaCategories = [
-  { id: 'photos', title: '照片', description: '管理图片和摄影作品', icon: <FileTextOutlined />, count: 156, route: '/media/photos', bg: '#eff6ff', color: '#2563eb' },
-  { id: 'movies', title: '电影', description: '管理视频和影片资源', icon: <PlaySquareOutlined />, count: 24, route: '/media/movies', bg: '#f5f3ff', color: '#7c3aed' },
-  { id: 'music', title: '音乐', description: '管理音频和音乐文件', icon: <SoundOutlined />, count: 89, route: '/media/music', bg: '#f0fdf4', color: '#16a34a' },
-  { id: 'notes', title: '笔记', description: '管理文档和笔记内容', icon: <FileTextOutlined />, count: 42, route: '/media/notes', bg: '#fff7ed', color: '#ea580c' },
-]
+  { id: 'photos', title: '照片', description: '管理图片和摄影作品', icon: <FileTextOutlined />, kind: 'image', route: '/media/photos', bg: '#eff6ff', color: '#2563eb' },
+  { id: 'movies', title: '电影', description: '管理视频和影片资源', icon: <PlaySquareOutlined />, kind: 'video', route: '/media/movies', bg: '#f5f3ff', color: '#7c3aed' },
+  { id: 'music', title: '音乐', description: '管理音频和音乐文件', icon: <SoundOutlined />, kind: 'audio', route: '/media/music', bg: '#f0fdf4', color: '#16a34a' },
+  { id: 'notes', title: '笔记', description: '管理文档和笔记内容', icon: <FileTextOutlined />, kind: 'document', route: '/media/notes', bg: '#fff7ed', color: '#ea580c' },
+] as const
 
 export function MediaPage() {
   const navigate = useNavigate()
+  const [countMap, setCountMap] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all(
+      mediaCategories.map((item) => assetsApi.list({ kind: item.kind, page: 1, page_size: 1 })),
+    )
+      .then((resp) => {
+        const next: Record<string, number> = {}
+        resp.forEach((row, index) => {
+          next[mediaCategories[index].id] = row.meta.total
+        })
+        setCountMap(next)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [])
 
   return (
     <Space direction="vertical" size={24} className="w-full">
@@ -21,6 +41,7 @@ export function MediaPage() {
         <Typography.Text type="secondary">管理您的各类媒体资源</Typography.Text>
       </div>
       <Row gutter={[16, 16]}>
+        {loading ? <Spin /> : null}
         {mediaCategories.map((category) => (
           <Col xs={24} sm={12} lg={6} key={category.id}>
             <Card
@@ -42,7 +63,7 @@ export function MediaPage() {
                 <Typography.Text type="secondary">{category.description}</Typography.Text>
                 <Space size={6}>
                   <Typography.Title level={2} style={{ margin: 0 }}>
-                    {category.count}
+                    {countMap[category.id] ?? 0}
                   </Typography.Title>
                   <Typography.Text type="secondary">个文件</Typography.Text>
                 </Space>

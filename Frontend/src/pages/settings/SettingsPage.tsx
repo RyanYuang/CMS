@@ -1,10 +1,13 @@
 import { UploadOutlined } from '@ant-design/icons'
-import { Button, Card, Form, Input, Space, Typography, Upload, message } from 'antd'
-import { useState } from 'react'
+import { Button, Card, Form, Input, Space, Spin, Typography, Upload, message } from 'antd'
+import { useEffect, useState } from 'react'
+import { assetsApi, settingsApi } from '../../services'
+import { hasPermission } from '../../utils/auth'
 
 type SettingsForm = {
   siteName: string
   siteDescription: string
+  logoUrl: string
   twitterUrl: string
   githubUrl: string
   emailUrl: string
@@ -13,21 +16,49 @@ type SettingsForm = {
 export function SettingsPage() {
   const [form] = Form.useForm<SettingsForm>()
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const canWrite = hasPermission('setting:write')
 
-  const initialValues: SettingsForm = {
-    siteName: '我的个人网站',
-    siteDescription: '分享生活，记录点滴',
-    twitterUrl: '',
-    githubUrl: '',
-    emailUrl: '',
-  }
+  useEffect(() => {
+    settingsApi
+      .list()
+      .then((rows) => {
+        const basic = (rows.find((item) => item.key === 'site.basic')?.value ?? {}) as Record<string, string>
+        const social = (rows.find((item) => item.key === 'social.links')?.value ?? {}) as Record<string, string>
+        const initialValues: SettingsForm = {
+          siteName: basic.siteName ?? '',
+          siteDescription: basic.siteDescription ?? '',
+          logoUrl: basic.logoUrl ?? '',
+          twitterUrl: social.twitter ?? '',
+          githubUrl: social.github ?? '',
+          emailUrl: social.email ?? '',
+        }
+        form.setFieldsValue(initialValues)
+        setLogoPreview(initialValues.logoUrl || null)
+      })
+      .finally(() => setLoading(false))
+  }, [form])
 
-  const onSubmit = (values: SettingsForm) => {
-    if (!values.siteName) {
-      message.error('站点名称不能为空')
-      return
-    }
-    window.setTimeout(() => message.success('设置已保存'), 500)
+  const onSubmit = async (values: SettingsForm) => {
+    await settingsApi.upsert([
+      {
+        key: 'site.basic',
+        value: {
+          siteName: values.siteName,
+          siteDescription: values.siteDescription,
+          logoUrl: values.logoUrl || '',
+        },
+      },
+      {
+        key: 'social.links',
+        value: {
+          twitter: values.twitterUrl || '',
+          github: values.githubUrl || '',
+          email: values.emailUrl || '',
+        },
+      },
+    ])
+    message.success('设置已保存')
   }
 
   return (
@@ -38,7 +69,8 @@ export function SettingsPage() {
         </Typography.Title>
         <Typography.Text type="secondary">配置站点的基本信息</Typography.Text>
       </div>
-      <Form<SettingsForm> form={form} layout="vertical" initialValues={initialValues} onFinish={onSubmit}>
+      {loading ? <Spin /> : null}
+      <Form<SettingsForm> form={form} layout="vertical" onFinish={onSubmit}>
         <Card className="cms-card" style={{ marginBottom: 16 }}>
           <Typography.Title level={4}>基本信息</Typography.Title>
           <Typography.Paragraph type="secondary">设置站点的名称、简介等基本信息</Typography.Paragraph>
@@ -60,7 +92,11 @@ export function SettingsPage() {
               <Upload
                 accept="image/*"
                 showUploadList={false}
-                beforeUpload={(file) => {
+                beforeUpload={async (file) => {
+                  if (!canWrite) {
+                    message.warning('当前账号无设置修改权限')
+                    return Upload.LIST_IGNORE
+                  }
                   if (!file.type.startsWith('image/')) {
                     message.error('请上传图片文件')
                     return Upload.LIST_IGNORE
@@ -69,15 +105,21 @@ export function SettingsPage() {
                     message.error('Logo 文件大小不能超过 2MB')
                     return Upload.LIST_IGNORE
                   }
-                  const reader = new FileReader()
-                  reader.onloadend = () => setLogoPreview(String(reader.result))
-                  reader.readAsDataURL(file)
+                  const uploaded = await assetsApi.upload(file)
+                  setLogoPreview(uploaded.public_url)
+                  form.setFieldValue('logoUrl', uploaded.public_url)
+                  message.success('Logo 上传成功')
                   return false
                 }}
               >
-                <Button icon={<UploadOutlined />}>上传 Logo</Button>
+                <Button icon={<UploadOutlined />} disabled={!canWrite}>
+                  上传 Logo
+                </Button>
               </Upload>
             </Space>
+            <Form.Item name="logoUrl" hidden>
+              <Input />
+            </Form.Item>
             <Typography.Paragraph type="secondary" style={{ marginTop: 8 }}>
               建议尺寸：512x512，格式：PNG、JPG，不超过 2MB
             </Typography.Paragraph>
@@ -107,7 +149,7 @@ export function SettingsPage() {
             >
               重置
             </Button>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" disabled={!canWrite}>
               保存设置
             </Button>
           </Space>

@@ -2,6 +2,9 @@ import { LockOutlined, MailOutlined } from '@ant-design/icons'
 import { Button, Card, Checkbox, Form, Input, Typography, message } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { authApi } from '../../services'
+import { TOKEN_KEY } from '../../services/http'
+import { setCurrentUser } from '../../utils/auth'
 
 type LoginForm = {
   username: string
@@ -13,25 +16,26 @@ export function LoginPage() {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
 
-  const onFinish = (values: LoginForm) => {
+  const onFinish = async (values: LoginForm) => {
     if (!values.username || !values.password) {
       message.error('请填写完整的登录信息')
       return
     }
     setIsLoading(true)
-    window.setTimeout(() => {
-      if (values.username === 'admin' && values.password === 'admin') {
-        localStorage.setItem('isAuthenticated', 'true')
-        if (values.remember) {
-          localStorage.setItem('rememberMe', 'true')
-        }
-        message.success('登录成功！')
-        navigate('/dashboard')
-        return
+    try {
+      const tokenResp = await authApi.login(values.username, values.password)
+      localStorage.setItem(TOKEN_KEY, tokenResp.access_token)
+      localStorage.setItem('isAuthenticated', 'true')
+      if (values.remember) {
+        localStorage.setItem('rememberMe', 'true')
       }
-      message.error('用户名或密码错误')
+      const me = await authApi.me()
+      setCurrentUser(me)
+      message.success('登录成功！')
+      navigate('/dashboard', { replace: true })
+    } finally {
       setIsLoading(false)
-    }, 800)
+    }
   }
 
   return (
@@ -56,7 +60,7 @@ export function LoginPage() {
           </Button>
         </Form>
         <Typography.Paragraph type="secondary" className="m-0" style={{ marginTop: 12 }}>
-          默认账号：admin / admin
+          默认账号：admin / admin123456
         </Typography.Paragraph>
       </Card>
     </div>

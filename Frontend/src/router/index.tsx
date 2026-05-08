@@ -1,4 +1,6 @@
+import { Spin } from 'antd'
 import type { ReactNode } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AdminLayout } from '../layouts/AdminLayout'
 import { AnalyticsPage } from '../pages/analytics/AnalyticsPage'
@@ -14,9 +16,34 @@ import { ProfilePage } from '../pages/profile/ProfilePage'
 import { RolesPage } from '../pages/roles/RolesPage'
 import { SettingsPage } from '../pages/settings/SettingsPage'
 import { UsersPage } from '../pages/users/UsersPage'
+import { authApi } from '../services'
+import { getCurrentUser, isAuthenticated, setCurrentUser } from '../utils/auth'
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
-  const authed = localStorage.getItem('isAuthenticated') === 'true'
-  if (!authed) {
+  const hasToken = isAuthenticated()
+  const cachedUser = getCurrentUser()
+  const [loading, setLoading] = useState(hasToken && !cachedUser)
+  const [ready, setReady] = useState(hasToken && Boolean(cachedUser))
+
+  useEffect(() => {
+    if (!hasToken || cachedUser) {
+      return
+    }
+    authApi
+      .me()
+      .then((user) => {
+        setCurrentUser(user)
+        setReady(true)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }, [cachedUser, hasToken])
+
+  if (loading) {
+    return <Spin fullscreen />
+  }
+  if (!ready) {
     return <Navigate to="/login" replace />
   }
   return <>{children}</>

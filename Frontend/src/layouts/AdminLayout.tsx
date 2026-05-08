@@ -3,19 +3,24 @@ import { Button, Layout, Menu, Modal, Space, Typography } from 'antd'
 import { useMemo } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { appMenuEntries, appMenuItems } from '../constants/menu'
+import { useCurrentUser } from '../hooks/useCurrentUser'
+import { authApi } from '../services'
+import { logoutLocal } from '../utils/auth'
 
 const { Header, Sider, Content } = Layout
 
 export function AdminLayout() {
+  const user = useCurrentUser()
   const handleLogout = () => {
     Modal.confirm({
       title: '确认退出',
       content: '您确定要退出登录吗？',
       okText: '确认退出',
       cancelText: '取消',
-      onOk: () => {
-        localStorage.removeItem('isAuthenticated')
-        navigate('/login')
+      onOk: async () => {
+        await authApi.logout()
+        logoutLocal()
+        navigate('/login', { replace: true })
       },
     })
   }
@@ -55,7 +60,7 @@ export function AdminLayout() {
           <Space size={12}>
             <Space size={8}>
               <UserOutlined />
-              <Typography.Text>管理员</Typography.Text>
+              <Typography.Text>{user?.full_name || user?.username || '管理员'}</Typography.Text>
             </Space>
             <Button icon={<LogoutOutlined />} onClick={handleLogout}>
               退出登录

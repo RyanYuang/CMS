@@ -1,3 +1,4 @@
+import type { LinkStatus } from '../../services'
 import {
   DeleteOutlined,
   EditOutlined,
@@ -6,58 +7,39 @@ import {
   UpOutlined,
   DownOutlined,
 } from '@ant-design/icons'
-import { Button, Form, Image, Input, Modal, Popconfirm, Space, Switch, Table, Tag, message } from 'antd'
+import { Button, Form, Image, Input, Modal, Popconfirm, Space, Spin, Switch, Table, Tag, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { linksApi } from '../../services'
 import { formatDate } from '../../utils/format'
+import { hasPermission } from '../../utils/auth'
 
-type LinkRow = {
-  id: string
-  title: string
-  url: string
-  cover: string
-  status: 'online' | 'offline'
-  order: number
-  updatedAt: Date
-}
-
-const initialRows: LinkRow[] = [
-  {
-    id: '1',
-    title: '春季促销活动',
-    url: 'https://example.com/spring-sale',
-    cover: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=100&h=100&fit=crop',
-    status: 'online',
-    order: 1,
-    updatedAt: new Date('2026-05-05'),
-  },
-  {
-    id: '2',
-    title: '产品介绍页',
-    url: 'https://example.com/products',
-    cover: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&h=100&fit=crop',
-    status: 'online',
-    order: 2,
-    updatedAt: new Date('2026-05-04'),
-  },
-  {
-    id: '3',
-    title: '关于我们',
-    url: 'https://example.com/about',
-    cover: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100&h=100&fit=crop',
-    status: 'offline',
-    order: 3,
-    updatedAt: new Date('2026-05-03'),
-  },
-]
+type LinkRow = Awaited<ReturnType<typeof linksApi.list>>[number]
 
 export function LinksPage() {
   const [form] = Form.useForm()
-  const [rows, setRows] = useState<LinkRow[]>(initialRows)
+  const [rows, setRows] = useState<LinkRow[]>([])
+  const [loading, setLoading] = useState(true)
   const [keyword, setKeyword] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline'>('all')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [editingRow, setEditingRow] = useState<LinkRow | null>(null)
+  const canWrite = hasPermission('link:write')
+
+  const loadLinks = () => {
+    linksApi
+      .list()
+      .then((resp) => {
+        setRows(resp.sort((a, b) => a.sort_order - b.sort_order))
+      })
+      .finally(() => {
+        setLoading(false)
+      })
+  }
+
+  useEffect(() => {
+    loadLinks()
+  }, [])
 
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
@@ -77,7 +59,7 @@ export function LinksPage() {
         url: row.url,
         cover: row.cover,
         status: row.status === 'online',
-        order: row.order,
+        order: row.sort_order,
       })
     } else {
       setEditingRow(null)
@@ -94,38 +76,40 @@ export function LinksPage() {
 
   const saveLink = async () => {
     const values = await form.validateFields()
-    const payload: Omit<LinkRow, 'id'> = {
+    const payload = {
       title: values.title,
       url: values.url,
       cover: values.cover,
-      status: values.status ? 'online' : 'offline',
-      order: Number(values.order) || 1,
-      updatedAt: new Date(),
+      status: (values.status ? 'online' : 'offline') as LinkStatus,
+      sort_order: Number(values.order) || 1,
     }
     if (editingRow) {
-      setRows((prev) => prev.map((row) => (row.id === editingRow.id ? { ...row, ...payload } : row)))
+      await linksApi.update(editingRow.id, payload)
       message.success('链接已更新')
     } else {
-      setRows((prev) => [...prev, { id: String(Date.now()), ...payload }])
+      await linksApi.create(payload)
       message.success('链接已创建')
     }
+    loadLinks()
     setIsDialogOpen(false)
   }
 
-  const removeLink = (id: string) => {
-    setRows((prev) => prev.filter((row) => row.id !== id))
+  const removeLink = async (id: number) => {
+    await linksApi.remove(id)
+    loadLinks()
     message.success('链接已删除')
   }
 
-  const moveLink = (id: string, direction: 'up' | 'down') => {
-    const index = rows.findIndex((row) => row.id === id)
-    if ((direction === 'up' && index === 0) || (direction === 'down' && index === rows.length - 1)) {
+  const moveLink = async (id: number, direction: 'up' | 'down') => {
+    const index = filteredRows.findIndex((row) => row.id === id)
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === filteredRows.length - 1)) {
       return
     }
     const nextIndex = direction === 'up' ? index - 1 : index + 1
-    const nextRows = [...rows]
+    const nextRows = [...filteredRows]
     ;[nextRows[index], nextRows[nextIndex]] = [nextRows[nextIndex], nextRows[index]]
-    setRows(nextRows.map((row, idx) => ({ ...row, order: idx + 1 })))
+    await linksApi.reorder(nextRows.map((item) => item.id))
+    loadLinks()
     message.success('排序已更新')
   }
 
@@ -135,12 +119,17 @@ export function LinksPage() {
       key: 'orderActions',
       render: (_, row, index) => (
         <Space direction="vertical" size={2}>
-          <Button size="small" icon={<UpOutlined />} disabled={index === 0} onClick={() => moveLink(row.id, 'up')} />
+          <Button
+            size="small"
+            icon={<UpOutlined />}
+            disabled={index === 0 || !canWrite}
+            onClick={() => void moveLink(row.id, 'up')}
+          />
           <Button
             size="small"
             icon={<DownOutlined />}
-            disabled={index === filteredRows.length - 1}
-            onClick={() => moveLink(row.id, 'down')}
+            disabled={index === filteredRows.length - 1 || !canWrite}
+            onClick={() => void moveLink(row.id, 'down')}
           />
         </Space>
       ),
@@ -157,14 +146,14 @@ export function LinksPage() {
         </Tag>
       ),
     },
-    { title: '更新时间', dataIndex: 'updatedAt', render: (value: Date) => formatDate(value) },
+    { title: '更新时间', dataIndex: 'updated_at', render: (value: string) => formatDate(value) },
     {
       title: '操作',
       key: 'actions',
       render: (_, row) => (
         <Space>
-          <Button type="text" icon={<EditOutlined />} onClick={() => openDialog(row)} />
-          <Popconfirm title="确认删除" description="此操作无法撤销" onConfirm={() => removeLink(row.id)}>
+          <Button type="text" icon={<EditOutlined />} onClick={() => openDialog(row)} disabled={!canWrite} />
+          <Popconfirm title="确认删除" description="此操作无法撤销" onConfirm={() => void removeLink(row.id)} disabled={!canWrite}>
             <Button danger type="text" icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -179,7 +168,7 @@ export function LinksPage() {
           <h1 style={{ margin: 0, fontSize: 30, fontWeight: 500 }}>链接管理</h1>
           <span style={{ color: '#737373' }}>管理您的外链资源</span>
         </Space>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => openDialog()}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => openDialog()} disabled={!canWrite}>
           新增链接
         </Button>
       </Space>
@@ -203,6 +192,7 @@ export function LinksPage() {
           </Button>
         </Space>
       </Space>
+      {loading ? <Spin /> : null}
       <Table<LinkRow> rowKey="id" columns={columns} dataSource={filteredRows} pagination={false} className="cms-card" />
       <Modal
         title={editingRow ? '编辑链接' : '新增链接'}
