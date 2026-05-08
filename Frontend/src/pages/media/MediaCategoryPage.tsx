@@ -1,5 +1,5 @@
-import { DeleteOutlined, UploadOutlined } from '@ant-design/icons'
-import { Button, Card, Col, Image, Pagination, Popconfirm, Row, Select, Space, Spin, Typography, Upload, message } from 'antd'
+import { DeleteOutlined, EditOutlined, UploadOutlined } from '@ant-design/icons'
+import { Button, Card, Col, Form, Image, Input, Modal, Pagination, Popconfirm, Row, Select, Space, Spin, Typography, Upload, message } from 'antd'
 import type { UploadProps } from 'antd'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
@@ -17,6 +17,7 @@ const categoryMeta: Record<string, { title: string; description: string; kind: A
 export function MediaCategoryPage() {
   const location = useLocation()
   const category = useMemo(() => location.pathname.split('/').at(-1) ?? 'photos', [location.pathname])
+  const isNotesCategory = category === 'notes'
   const meta = categoryMeta[category] ?? categoryMeta.photos
   const [kind, setKind] = useState<AssetKind>(meta.kind)
   const [page, setPage] = useState(1)
@@ -24,6 +25,9 @@ export function MediaCategoryPage() {
   const [rows, setRows] = useState<AssetItem[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [noteModalOpen, setNoteModalOpen] = useState(false)
+  const [creatingNote, setCreatingNote] = useState(false)
+  const [noteForm] = Form.useForm<{ title: string; content: string }>()
   const canUpload = hasPermission('asset:write')
   const canDelete = hasPermission('asset:delete')
 
@@ -64,6 +68,27 @@ export function MediaCategoryPage() {
     },
   }
 
+  const submitNote = async () => {
+    const values = await noteForm.validateFields()
+    const title = values.title
+    const content = values.content
+    const safeName = title.trim().replace(/[\\/:*?"<>|]+/g, '_').slice(0, 80) || 'note'
+    const blob = new Blob([content], { type: 'text/markdown' })
+    const file = new File([blob], `${safeName}.md`, { type: 'text/markdown' })
+
+    setCreatingNote(true)
+    try {
+      await assetsApi.upload(file)
+      message.success('笔记已保存')
+      setNoteModalOpen(false)
+      noteForm.resetFields()
+      setPage(1)
+      loadAssets(1, pageSize, kind)
+    } finally {
+      setCreatingNote(false)
+    }
+  }
+
   return (
     <Space direction="vertical" size={16} className="w-full">
       <Card className="cms-card">
@@ -92,11 +117,17 @@ export function MediaCategoryPage() {
                 { label: '其他', value: 'other' },
               ]}
             />
-            <Upload {...uploadProps}>
-              <Button icon={<UploadOutlined />} disabled={!canUpload}>
-                上传文件
+            {isNotesCategory ? (
+              <Button icon={<EditOutlined />} disabled={!canUpload} onClick={() => setNoteModalOpen(true)}>
+                新建笔记
               </Button>
-            </Upload>
+            ) : (
+              <Upload {...uploadProps}>
+                <Button icon={<UploadOutlined />} disabled={!canUpload}>
+                  上传文件
+                </Button>
+              </Upload>
+            )}
           </Space>
         </Space>
       </Card>
@@ -125,7 +156,7 @@ export function MediaCategoryPage() {
             >
               <Space direction="vertical" size={4}>
                 <Typography.Text strong ellipsis>
-                  {item.filename}
+                  {isNotesCategory ? item.filename.replace(/\.md$/i, '') : item.filename}
                 </Typography.Text>
                 <Typography.Text type="secondary">{item.mime_type}</Typography.Text>
                 <Typography.Text type="secondary">{item.size_bytes} bytes</Typography.Text>
@@ -144,6 +175,41 @@ export function MediaCategoryPage() {
           setPageSize(nextPageSize)
         }}
       />
+      <Modal
+        title="新建笔记"
+        open={noteModalOpen}
+        onCancel={() => {
+          setNoteModalOpen(false)
+          noteForm.resetFields()
+        }}
+        onOk={() => void submitNote()}
+        okText="保存"
+        confirmLoading={creatingNote}
+        destroyOnHidden
+      >
+        <Form form={noteForm} layout="vertical">
+          <Form.Item
+            label="标题"
+            name="title"
+            rules={[
+              { required: true, message: '请输入标题' },
+              { max: 80, message: '标题最多 80 个字符' },
+            ]}
+          >
+            <Input maxLength={80} />
+          </Form.Item>
+          <Form.Item
+            label="内容"
+            name="content"
+            rules={[
+              { required: true, message: '请输入内容' },
+              { max: 20000, message: '内容最多 20000 个字符' },
+            ]}
+          >
+            <Input.TextArea rows={10} maxLength={20000} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </Space>
   )
 }

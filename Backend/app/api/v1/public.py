@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
 from app.exceptions import NotFound
-from app.models import Article, ArticleStatus, LinkItem, LinkStatus, SiteSetting
-from app.schemas import ArticleDetail, ArticleListItem, LinkOut
+from app.models import Article, ArticleStatus, Asset, AssetKind, LinkItem, LinkStatus, SiteSetting
+from app.schemas import ArticleDetail, ArticleListItem, AssetOut, LinkOut
 from app.schemas.common import Page
 from app.services import article as article_service
 from app.utils.pagination import PageParams, build_page_meta, page_params
@@ -75,3 +75,17 @@ async def public_links(session: AsyncSession = Depends(get_session)) -> list[Lin
 async def public_site(session: AsyncSession = Depends(get_session)) -> dict:
     res = await session.execute(select(SiteSetting))
     return {s.key: s.value for s in res.scalars().all()}
+
+
+@router.get("/assets", response_model=list[AssetOut])
+async def public_assets(
+    kind: AssetKind | None = Query(None),
+    limit: int = Query(200, ge=1, le=500),
+    session: AsyncSession = Depends(get_session),
+) -> list[AssetOut]:
+    stmt = select(Asset)
+    if kind is not None:
+        stmt = stmt.where(Asset.kind == kind)
+
+    rows = (await session.execute(stmt.order_by(Asset.id.desc()).limit(limit))).scalars().all()
+    return [AssetOut.model_validate(i) for i in rows]
