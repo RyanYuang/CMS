@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy import Integer, JSON, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,4 +15,4 @@ class SiteSetting(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     key: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
-    value: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    value: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)

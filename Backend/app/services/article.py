@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Iterable, Sequence
+from typing import Optional, Iterable, Sequence
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +29,7 @@ async def _ensure_unique_slug(
     session: AsyncSession,
     desired: str,
     *,
-    exclude_id: int | None = None,
+    exclude_id: Optional[int] = None,
 ) -> str:
     candidate = desired
     for _ in range(5):
@@ -57,8 +57,8 @@ async def _take_snapshot(
     session: AsyncSession,
     article: Article,
     *,
-    operator: User | None,
-    note: str | None,
+    operator: Optional[User],
+    note: Optional[str],
 ) -> ArticleVersion:
     snap = ArticleVersion(
         article_id=article.id,
@@ -81,10 +81,10 @@ async def create_article(
     *,
     title: str,
     content: str,
-    summary: str | None,
-    slug: str | None,
-    category_id: int | None,
-    cover_asset_id: int | None,
+    summary: Optional[str],
+    slug: Optional[str],
+    category_id: Optional[int],
+    cover_asset_id: Optional[int],
     tag_ids: Sequence[int],
     status: ArticleStatus,
     author: User,
@@ -117,14 +117,14 @@ async def update_article(
     *,
     article: Article,
     operator: User,
-    title: str | None = None,
-    slug: str | None = None,
-    summary: str | None = None,
-    content: str | None = None,
-    category_id: int | None = None,
-    cover_asset_id: int | None = None,
-    tag_ids: Sequence[int] | None = None,
-    note: str | None = None,
+    title: Optional[str] = None,
+    slug: Optional[str] = None,
+    summary: Optional[str] = None,
+    content: Optional[str] = None,
+    category_id: Optional[int] = None,
+    cover_asset_id: Optional[int] = None,
+    tag_ids: Optional[Sequence[int]] = None,
+    note: Optional[str] = None,
 ) -> Article:
     diff: dict[str, dict[str, object]] = {}
 
@@ -179,7 +179,7 @@ async def transition_status(
     article: Article,
     target: ArticleStatus,
     operator: User,
-    note: str | None = None,
+    note: Optional[str] = None,
 ) -> Article:
     if article.status == target:
         return article
@@ -233,13 +233,13 @@ async def rollback_to_version(
 async def list_articles(
     session: AsyncSession,
     *,
-    keyword: str | None,
-    status: ArticleStatus | None,
-    category_id: int | None,
-    tag_id: int | None,
-    author_id: int | None,
-    date_from: datetime | None,
-    date_to: datetime | None,
+    keyword: Optional[str],
+    status: Optional[ArticleStatus],
+    category_id: Optional[int],
+    tag_id: Optional[int],
+    author_id: Optional[int],
+    date_from: Optional[datetime],
+    date_to: Optional[datetime],
     offset: int,
     limit: int,
     only_published: bool = False,

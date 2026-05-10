@@ -48,6 +48,6 @@ async def upsert_settings(
 
 
 def _clean_value(value: Any) -> Any:
-    if isinstance(value, dict | list | str | int | float | bool) or value is None:
+    if isinstance(value, (dict, list, str, int, float, bool)) or value is None:
         return value
     return str(value)

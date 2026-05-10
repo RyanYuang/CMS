@@ -2,7 +2,7 @@
 
 
 from datetime import datetime
-from typing import Sequence
+from typing import Optional, Sequence
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
@@ -51,13 +51,13 @@ def _used_asset_ids(article: Article) -> Sequence[int]:
     dependencies=[Depends(require_permissions(Perm.ARTICLE_READ))],
 )
 async def list_articles(
-    keyword: str | None = Query(None, max_length=120),
-    status: ArticleStatus | None = Query(None),
-    category_id: int | None = Query(None),
-    tag_id: int | None = Query(None),
-    author_id: int | None = Query(None),
-    date_from: datetime | None = Query(None),
-    date_to: datetime | None = Query(None),
+    keyword: Optional[str] = Query(None, max_length=120),
+    status: Optional[ArticleStatus] = Query(None),
+    category_id: Optional[int] = Query(None),
+    tag_id: Optional[int] = Query(None),
+    author_id: Optional[int] = Query(None),
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
     pp: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_session),
 ) -> Page[ArticleListItem]:

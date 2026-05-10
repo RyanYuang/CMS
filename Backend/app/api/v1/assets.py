@@ -1,5 +1,7 @@
 """资源（媒体）接口（RYA-12/15）。"""
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,9 +29,9 @@ router = APIRouter(prefix="/assets", tags=["assets"])
     dependencies=[Depends(require_permissions(Perm.ASSET_READ))],
 )
 async def list_assets(
-    kind: AssetKind | None = Query(None),
-    is_orphan: bool | None = Query(None),
-    keyword: str | None = Query(None, max_length=120),
+    kind: Optional[AssetKind] = Query(None),
+    is_orphan: Optional[bool] = Query(None),
+    keyword: Optional[str] = Query(None, max_length=120),
     pp: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_session),
 ) -> Page[AssetListItem]:

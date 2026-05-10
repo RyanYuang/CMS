@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import enum
 
+from typing import Optional
+
 from sqlalchemy import Boolean, Enum, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,11 +32,11 @@ class Asset(Base):
     )
     mime_type: Mapped[str] = mapped_column(String(120), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
-    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    checksum: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    width: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    height: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    checksum: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     is_orphan: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
 
-    uploader_id: Mapped[int | None] = mapped_column(
+    uploader_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )

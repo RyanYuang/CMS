@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy import Boolean, ForeignKey, Index, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -21,10 +23,10 @@ class Note(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    category: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    category: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
 
-    owner_id: Mapped[int | None] = mapped_column(
+    owner_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )

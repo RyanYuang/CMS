@@ -1,5 +1,6 @@
 """Public API：供 Leowongwebsite 等前台站点匿名访问（RYA-10）。"""
 
+from typing import Optional
 
 from datetime import datetime
 
@@ -35,7 +36,7 @@ class PublicNoteOut(BaseModel):
     id: int
     title: str
     content: str
-    category: str | None
+    category: Optional[str]
     pinned: bool
     tags: list[str]
     created_at: datetime
@@ -45,11 +46,11 @@ class PublicNoteOut(BaseModel):
 class PublicMovieOut(BaseModel):
     id: int
     title: str
-    original_title: str | None
-    year: int | None
+    original_title: Optional[str]
+    year: Optional[int]
     synopsis: str
-    cover_url: str | None
-    video_url: str | None
+    cover_url: Optional[str]
+    video_url: Optional[str]
     stills: list[str]
     genres: list[str]
     tags: list[str]
@@ -60,11 +61,11 @@ class PublicMovieOut(BaseModel):
 class PublicMusicOut(BaseModel):
     id: int
     title: str
-    artist: str | None
-    album: str | None
-    year: int | None
-    cover_url: str | None
-    audio_url: str | None
+    artist: Optional[str]
+    album: Optional[str]
+    year: Optional[int]
+    cover_url: Optional[str]
+    audio_url: Optional[str]
     tags: list[str]
     pinned: bool
     updated_at: datetime
@@ -88,9 +89,9 @@ def _serialize_string_list(value) -> list[str]:
 
 @router.get("/articles", response_model=Page[ArticleListItem])
 async def public_articles(
-    keyword: str | None = Query(None, max_length=120),
-    category_id: int | None = Query(None),
-    tag_id: int | None = Query(None),
+    keyword: Optional[str] = Query(None, max_length=120),
+    category_id: Optional[int] = Query(None),
+    tag_id: Optional[int] = Query(None),
     pp: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_session),
 ) -> Page[ArticleListItem]:
@@ -148,7 +149,7 @@ async def public_site(session: AsyncSession = Depends(get_session)) -> dict:
 
 @router.get("/assets", response_model=list[AssetOut])
 async def public_assets(
-    kind: AssetKind | None = Query(None),
+    kind: Optional[AssetKind] = Query(None),
     limit: int = Query(200, ge=1, le=500),
     session: AsyncSession = Depends(get_session),
 ) -> list[AssetOut]:

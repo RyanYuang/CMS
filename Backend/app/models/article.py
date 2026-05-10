@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import (
     Column,
@@ -45,7 +45,7 @@ class Article(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     slug: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    summary: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    summary: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     status: Mapped[ArticleStatus] = mapped_column(
@@ -54,15 +54,15 @@ class Article(Base):
         nullable=False,
         index=True,
     )
-    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    cover_asset_id: Mapped[int | None] = mapped_column(
+    cover_asset_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("assets.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    category_id: Mapped[int | None] = mapped_column(
+    category_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    author_id: Mapped[int | None] = mapped_column(
+    author_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
 
@@ -73,9 +73,9 @@ class Article(Base):
         secondary=article_tags,
         lazy="selectin",
     )
-    cover: Mapped["Asset | None"] = relationship("Asset", foreign_keys=[cover_asset_id], lazy="selectin")  # type: ignore[name-defined]  # noqa: F821
-    category: Mapped["Category | None"] = relationship("Category", lazy="selectin")  # type: ignore[name-defined]  # noqa: F821
-    author: Mapped["User | None"] = relationship("User", lazy="selectin")  # type: ignore[name-defined]  # noqa: F821
+    cover: Mapped[Optional["Asset"]] = relationship("Asset", foreign_keys=[cover_asset_id], lazy="selectin")  # type: ignore[name-defined]  # noqa: F821
+    category: Mapped[Optional["Category"]] = relationship("Category", lazy="selectin")  # type: ignore[name-defined]  # noqa: F821
+    author: Mapped[Optional["User"]] = relationship("User", lazy="selectin")  # type: ignore[name-defined]  # noqa: F821
 
 
 class ArticleVersion(Base):
@@ -94,14 +94,14 @@ class ArticleVersion(Base):
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     slug: Mapped[str] = mapped_column(String(255), nullable=False)
-    summary: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    summary: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     status: Mapped[ArticleStatus] = mapped_column(
         Enum(ArticleStatus, name="article_status"),
         nullable=False,
     )
 
-    operator_id: Mapped[int | None] = mapped_column(
+    operator_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    note: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)

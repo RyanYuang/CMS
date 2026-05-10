@@ -1,5 +1,6 @@
 """用户管理接口。"""
 
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func, or_, select
@@ -28,9 +29,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("", response_model=UserList, dependencies=[Depends(require_permissions(Perm.USER_READ))])
 async def list_users(
-    keyword: str | None = Query(None, max_length=64),
-    is_active: bool | None = Query(None),
-    role_id: int | None = Query(None),
+    keyword: Optional[str] = Query(None, max_length=64),
+    is_active: Optional[bool] = Query(None),
+    role_id: Optional[int] = Query(None),
     pp: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_session),
 ) -> UserList:

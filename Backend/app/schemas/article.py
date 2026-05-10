@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
+from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -34,34 +34,34 @@ class _AuthorMini(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     username: str
-    full_name: str | None = None
+    full_name: Optional[str] = None
 
 
 class ArticleCreate(BaseModel):
     title: str = Field(min_length=1, max_length=255)
-    slug: str | None = Field(default=None, max_length=255, pattern=r"^[a-z0-9][a-z0-9\-]*$")
-    summary: str | None = Field(default=None, max_length=500)
+    slug: Optional[str] = Field(default=None, max_length=255, pattern=r"^[a-z0-9][a-z0-9\-]*$")
+    summary: Optional[str] = Field(default=None, max_length=500)
     content: str = ""
-    category_id: int | None = None
-    cover_asset_id: int | None = None
+    category_id: Optional[int] = None
+    cover_asset_id: Optional[int] = None
     tag_ids: List[int] = Field(default_factory=list)
     status: ArticleStatus = ArticleStatus.draft
 
 
 class ArticleUpdate(BaseModel):
-    title: str | None = Field(default=None, max_length=255)
-    slug: str | None = Field(default=None, max_length=255, pattern=r"^[a-z0-9][a-z0-9\-]*$")
-    summary: str | None = Field(default=None, max_length=500)
-    content: str | None = None
-    category_id: int | None = None
-    cover_asset_id: int | None = None
-    tag_ids: List[int] | None = None
-    note: str | None = Field(default=None, max_length=255)
+    title: Optional[str] = Field(default=None, max_length=255)
+    slug: Optional[str] = Field(default=None, max_length=255, pattern=r"^[a-z0-9][a-z0-9\-]*$")
+    summary: Optional[str] = Field(default=None, max_length=500)
+    content: Optional[str] = None
+    category_id: Optional[int] = None
+    cover_asset_id: Optional[int] = None
+    tag_ids: Optional[List[int]] = None
+    note: Optional[str] = Field(default=None, max_length=255)
 
 
 class ArticleStatusUpdate(BaseModel):
     status: ArticleStatus
-    note: str | None = Field(default=None, max_length=255)
+    note: Optional[str] = Field(default=None, max_length=255)
 
 
 class ArticleListItem(BaseModel):
@@ -69,12 +69,12 @@ class ArticleListItem(BaseModel):
     id: int
     title: str
     slug: str
-    summary: str | None
+    summary: Optional[str]
     status: ArticleStatus
-    published_at: datetime | None
-    cover: _AssetMini | None = None
-    category: _CategoryMini | None = None
-    author: _AuthorMini | None = None
+    published_at: Optional[datetime]
+    cover: Optional[_AssetMini] = None
+    category: Optional[_CategoryMini] = None
+    author: Optional[_AuthorMini] = None
     tags: List[_TagMini] = Field(default_factory=list)
     view_count: int
     current_version: int
@@ -93,8 +93,8 @@ class ArticleVersionOut(BaseModel):
     version: int
     title: str
     slug: str
-    summary: str | None
+    summary: Optional[str]
     status: ArticleStatus
-    note: str | None
-    operator_id: int | None
+    note: Optional[str]
+    operator_id: Optional[int]
     created_at: datetime

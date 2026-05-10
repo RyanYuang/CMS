@@ -1,5 +1,6 @@
 """审计日志查询接口。"""
 
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
@@ -23,10 +24,10 @@ router = APIRouter(prefix="/audit", tags=["audit"])
     dependencies=[Depends(require_permissions(Perm.AUDIT_READ))],
 )
 async def list_audit(
-    target_type: str | None = Query(None, max_length=64),
-    target_id: str | None = Query(None, max_length=64),
-    actor_id: int | None = Query(None),
-    action: AuditAction | None = Query(None),
+    target_type: Optional[str] = Query(None, max_length=64),
+    target_id: Optional[str] = Query(None, max_length=64),
+    actor_id: Optional[int] = Query(None),
+    action: Optional[AuditAction] = Query(None),
     pp: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_session),
 ) -> Page[AuditLogOut]:

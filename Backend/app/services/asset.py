@@ -9,7 +9,7 @@ import secrets
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import BinaryIO
+from typing import Optional, BinaryIO
 
 import aiofiles
 from PIL import Image, UnidentifiedImageError
@@ -63,7 +63,7 @@ async def save_file(
     file: BinaryIO,
     filename: str,
     content_type: str,
-    uploader: User | None,
+    uploader: Optional[User],
 ) -> Asset:
     raw = file.read()
     if not raw:

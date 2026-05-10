@@ -1,7 +1,7 @@
 """电影 schema。"""
 
 from datetime import datetime
-from typing import List
+from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -27,16 +27,16 @@ def _validate_stills(values: List[str]) -> List[str]:
 
 class MovieCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
-    original_title: str | None = Field(default=None, max_length=200)
-    director: str | None = Field(default=None, max_length=120)
+    original_title: Optional[str] = Field(default=None, max_length=200)
+    director: Optional[str] = Field(default=None, max_length=120)
     cast: List[str] = Field(default_factory=list)
     genres: List[str] = Field(default_factory=list)
-    year: int | None = None
-    duration_minutes: int | None = None
-    rating: str | None = Field(default=None, max_length=20)
+    year: Optional[int] = None
+    duration_minutes: Optional[int] = None
+    rating: Optional[str] = Field(default=None, max_length=20)
     synopsis: str = Field(default="")
-    cover_url: str | None = Field(default=None, max_length=500)
-    video_url: str | None = Field(default=None, max_length=500)
+    cover_url: Optional[str] = Field(default=None, max_length=500)
+    video_url: Optional[str] = Field(default=None, max_length=500)
     stills: List[str] = Field(default_factory=list, max_length=settings.movie_still_max_count)
     tags: List[str] = Field(default_factory=list)
     pinned: bool = False
@@ -48,24 +48,24 @@ class MovieCreate(BaseModel):
 
 
 class MovieUpdate(BaseModel):
-    title: str | None = Field(default=None, min_length=1, max_length=200)
-    original_title: str | None = Field(default=None, max_length=200)
-    director: str | None = Field(default=None, max_length=120)
-    cast: List[str] | None = None
-    genres: List[str] | None = None
-    year: int | None = None
-    duration_minutes: int | None = None
-    rating: str | None = Field(default=None, max_length=20)
-    synopsis: str | None = None
-    cover_url: str | None = Field(default=None, max_length=500)
-    video_url: str | None = Field(default=None, max_length=500)
-    stills: List[str] | None = None
-    tags: List[str] | None = None
-    pinned: bool | None = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    original_title: Optional[str] = Field(default=None, max_length=200)
+    director: Optional[str] = Field(default=None, max_length=120)
+    cast: Optional[List[str]] = None
+    genres: Optional[List[str]] = None
+    year: Optional[int] = None
+    duration_minutes: Optional[int] = None
+    rating: Optional[str] = Field(default=None, max_length=20)
+    synopsis: Optional[str] = None
+    cover_url: Optional[str] = Field(default=None, max_length=500)
+    video_url: Optional[str] = Field(default=None, max_length=500)
+    stills: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    pinned: Optional[bool] = None
 
     @field_validator("stills")
     @classmethod
-    def validate_stills(cls, value: List[str] | None) -> List[str] | None:
+    def validate_stills(cls, value: Optional[List[str]]) -> Optional[List[str]]:
         if value is None:
             return None
         return _validate_stills(value)
@@ -75,20 +75,20 @@ class MovieOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int
     title: str
-    original_title: str | None
-    director: str | None
+    original_title: Optional[str]
+    director: Optional[str]
     cast: List[str]
     genres: List[str]
-    year: int | None
-    duration_minutes: int | None
-    rating: str | None
+    year: Optional[int]
+    duration_minutes: Optional[int]
+    rating: Optional[str]
     synopsis: str
-    cover_url: str | None
-    video_url: str | None
+    cover_url: Optional[str]
+    video_url: Optional[str]
     stills: List[str]
     tags: List[str]
     pinned: bool
-    owner_id: int | None
+    owner_id: Optional[int]
     created_at: datetime
     updated_at: datetime
 

@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from typing import Optional, Tuple
+
 import re
 
 _RESOURCE_QUERY = re.compile(r"(playlist|album|song)\?id=(\d+)", re.IGNORECASE)
@@ -24,7 +26,7 @@ _IFRAME_OUTCHAIN = re.compile(
 _TYPE_MAP = {"playlist": 0, "album": 1, "song": 2}
 
 
-def parse_netease_playlist_id(text: str) -> str | None:
+def parse_netease_playlist_id(text: str) -> Optional[str]:
     """从任意字符串中提取网易云歌单数字 id；无法识别时返回 None。"""
     parsed = parse_netease_resource(text)
     if not parsed:
@@ -35,7 +37,7 @@ def parse_netease_playlist_id(text: str) -> str | None:
     return resource_id
 
 
-def parse_netease_resource(text: str) -> tuple[str, str] | None:
+def parse_netease_resource(text: str) -> Optional[Tuple[str, str]]:
     """从任意字符串中提取网易云资源类型与数字 id。"""
     s = text.strip()
     if not s:
@@ -60,7 +62,7 @@ def _build_iframe(src: str) -> str:
     )
 
 
-def normalize_netease_playlist_link_field(value: str | None) -> str | None:
+def normalize_netease_playlist_link_field(value: Optional[str]) -> Optional[str]:
     """将网易云链接或 iframe 规范化为官方 outchain iframe 代码。"""
     if value is None:
         return None

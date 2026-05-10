@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -17,10 +18,10 @@ class AssetOut(BaseModel):
     kind: AssetKind
     mime_type: str
     size_bytes: int
-    width: int | None
-    height: int | None
+    width: Optional[int]
+    height: Optional[int]
     is_orphan: bool
-    uploader_id: int | None
+    uploader_id: Optional[int]
     created_at: datetime
 
 

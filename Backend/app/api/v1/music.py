@@ -1,5 +1,7 @@
 """音乐接口：list/get/create/update/delete/togglePin/count。"""
 
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,10 +54,10 @@ async def _reload(session: AsyncSession, track_id: int) -> MusicTrack:
 
 @router.get("", response_model=Page[MusicTrackOut], dependencies=[Depends(require_permissions(Perm.MUSIC_READ))])
 async def list_music(
-    keyword: str | None = Query(None, max_length=200),
-    genre: str | None = Query(None, max_length=80),
-    year: int | None = Query(None),
-    pinned: bool | None = Query(None),
+    keyword: Optional[str] = Query(None, max_length=200),
+    genre: Optional[str] = Query(None, max_length=80),
+    year: Optional[int] = Query(None),
+    pinned: Optional[bool] = Query(None),
     pp: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_session),
 ) -> Page[MusicTrackOut]:

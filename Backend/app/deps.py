@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Optional, Iterable
 
 from fastapi import Depends, Request
 from fastapi.security import OAuth2PasswordBearer
@@ -20,7 +20,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=F
 
 async def current_user(
     request: Request,
-    token: str | None = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_session),
 ) -> User:
     if not token:

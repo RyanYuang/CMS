@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Dict, Optional, Union, Any
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -23,10 +23,10 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(
-    subject: str | int,
+    subject: Union[str, int],
     *,
-    extra: dict[str, Any] | None = None,
-    expires_minutes: int | None = None,
+    extra: Optional[Dict[str, Any]] = None,
+    expires_minutes: Optional[int] = None,
 ) -> str:
     expire_minutes = expires_minutes or settings.access_token_expire_minutes
     to_encode: dict[str, Any] = {

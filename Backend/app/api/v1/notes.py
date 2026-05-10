@@ -1,5 +1,6 @@
 """笔记接口：list/get/create/update/delete/togglePin/count。"""
 
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import String, cast, func, or_, select
@@ -53,8 +54,8 @@ async def _reload(session: AsyncSession, note_id: int) -> Note:
     dependencies=[Depends(require_permissions(Perm.NOTE_READ))],
 )
 async def list_notes(
-    keyword: str | None = Query(None, max_length=200),
-    category: str | None = Query(None, max_length=80),
+    keyword: Optional[str] = Query(None, max_length=200),
+    category: Optional[str] = Query(None, max_length=80),
     pp: PageParams = Depends(page_params),
     session: AsyncSession = Depends(get_session),
 ) -> Page[NoteOut]:

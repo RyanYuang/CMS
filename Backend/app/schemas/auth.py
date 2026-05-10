@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import List
+from typing import Optional, List
 
 from pydantic import BaseModel, Field
 
@@ -22,7 +22,7 @@ class MeResponse(BaseModel):
     id: int
     username: str
     email: str
-    full_name: str | None
-    avatar_url: str | None
-    role: str | None
+    full_name: Optional[str]
+    avatar_url: Optional[str]
+    role: Optional[str]
     permissions: List[str]
