@@ -2,6 +2,7 @@ import { LockOutlined, MailOutlined } from '@ant-design/icons'
 import { Button, Card, Checkbox, Form, Input, Typography, message } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { LoginBuildStamp } from '../../components/LoginBuildStamp'
 import { authApi } from '../../services'
 import { TOKEN_KEY } from '../../services/http'
 import { setCurrentUser } from '../../utils/auth'
@@ -63,6 +64,7 @@ export function LoginPage() {
           默认账号：admin / admin123456
         </Typography.Paragraph>
       </Card>
+      <LoginBuildStamp />
     </div>
   )
 }

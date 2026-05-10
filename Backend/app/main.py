@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -33,10 +34,12 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
-        version="0.1.0",
+        version=settings.app_build_version,
         debug=settings.app_debug,
         lifespan=lifespan,
     )
+    # 未配置 APP_BUILD_TIME 时 /api/v1/public/build 用此作为展示用时间（应用实例创建时刻，UTC ISO）
+    app.state.started_at_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -78,7 +81,7 @@ def create_app() -> FastAPI:
             "name": settings.app_name,
             "docs": "/docs",
             "openapi": "/openapi.json",
-            "version": "0.1.0",
+            "version": settings.app_build_version,
         }
 
     return app

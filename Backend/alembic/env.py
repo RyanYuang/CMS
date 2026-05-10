@@ -12,6 +12,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+ALEMBIC_DIR = Path(__file__).resolve().parent
+if str(ALEMBIC_DIR) not in sys.path:
+    sys.path.insert(0, str(ALEMBIC_DIR))
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:

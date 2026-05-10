@@ -10,6 +10,13 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+.vite
+
+# 本地环境（模板见仓库说明或 CI）
+.env
+.env.*
+!.env.example
+
 *.local
 
 # Editor directories and files

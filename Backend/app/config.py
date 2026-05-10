@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_debug: bool = True
 
+    # 部署时由 CI / Docker build-args 注入，供登录页等展示（未设置则登录页显示占位）
+    app_build_version: str = "0.1.0"
+    app_build_time: str = ""
+
     secret_key: str = "change-me-in-production"
     access_token_expire_minutes: int = 120
     algorithm: str = "HS256"

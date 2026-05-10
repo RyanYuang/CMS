@@ -72,12 +72,19 @@ async def init_db_and_seed() -> None:
             message="init strategy and db target",
             data={
                 "database_url": settings.database_url,
-                "init_strategy": "metadata.create_all",
+                "init_strategy": (
+                    "metadata.create_all"
+                    if settings.app_env in ("dev", "test")
+                    else "alembic_only (no create_all in prod)"
+                ),
             },
         )
         # endregion
-        await conn.run_sync(Base.metadata.create_all)
-        if settings.database_url.startswith("sqlite"):
+        # 生产环境必须由 deploy 中的 `alembic upgrade head` 建表，否则 create_all
+        # 会先落表但不写 alembic_version，下次迁移会报 “table already exists”。
+        if settings.app_env in ("dev", "test"):
+            await conn.run_sync(Base.metadata.create_all)
+        if settings.app_env in ("dev", "test") and settings.database_url.startswith("sqlite"):
             columns = (
                 await conn.execute(text("PRAGMA table_info('movies')"))
             ).mappings().all()

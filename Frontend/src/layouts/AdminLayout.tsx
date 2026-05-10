@@ -2,6 +2,7 @@ import { LogoutOutlined, UserOutlined } from '@ant-design/icons'
 import { Button, Layout, Menu, Modal, Space, Typography } from 'antd'
 import { useMemo } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { CmsBuildStamp } from '../components/CmsBuildStamp'
 import { appMenuEntries, appMenuItems } from '../constants/menu'
 import { useCurrentUser } from '../hooks/useCurrentUser'
 import { authApi } from '../services'
@@ -48,7 +49,10 @@ export function AdminLayout() {
           onClick={({ key }) => navigate(String(key))}
           className="figma-menu"
         />
-        <div className="sider-footer">© 2026 站长后台</div>
+        <div className="sider-footer">
+          <div>© 2026 站长后台</div>
+          <CmsBuildStamp />
+        </div>
       </Sider>
       <Layout>
         <Header className="app-header">

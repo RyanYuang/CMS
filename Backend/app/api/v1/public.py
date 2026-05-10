@@ -4,11 +4,12 @@ from typing import Optional
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.db import get_session
 from app.exceptions import NotFound
 from app.models import (
@@ -30,6 +31,24 @@ from app.utils.pagination import PageParams, build_page_meta, page_params
 
 
 router = APIRouter(prefix="/public", tags=["public"])
+
+
+class BuildInfoOut(BaseModel):
+    version: str
+    build_time: str
+    port: int
+
+
+@router.get("/build", response_model=BuildInfoOut)
+async def public_build_info(request: Request) -> BuildInfoOut:
+    configured = settings.app_build_time.strip()
+    started = getattr(request.app.state, "started_at_iso", "") or ""
+    build_time = configured or started
+    return BuildInfoOut(
+        version=settings.app_build_version,
+        build_time=build_time,
+        port=settings.app_port,
+    )
 
 
 class PublicNoteOut(BaseModel):

@@ -24,3 +24,11 @@ uploads/
 .idea/
 .vscode/
 .DS_Store
+
+# 日志
+*.log
+
+# Python 打包 /  wheel
+*.egg
+dist/
+build/

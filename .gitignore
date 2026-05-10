@@ -1,25 +1,74 @@
-# dependencies
-node_modules/
-
-# build output
-dist/
-build/
-coverage/
-
-# environment files
+# ========== 环境变量（勿提交密钥）==========
 .env
 .env.*
 !.env.example
+!Backend/.env.example
+!Frontend/.env.example
 
-# logs
+# ========== Backend — Python ==========
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage*
+coverage.xml
+htmlcov/
+
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+Backend/.venv/
+Backend/venv/
+Backend/env/
+
+# 本地数据库、上传与运行数据
+Backend/var/
+Backend/uploads/
+*.db
+*.db-journal
+*.sqlite3
+
+# Python 打包产物（若曾在 Backend 根目录执行构建）
+Backend/dist/
+Backend/build/
+
+# ========== Frontend — Node / Vite ==========
+node_modules/
+
+Frontend/dist/
+Frontend/dist-ssr/
+Frontend/.vite/
+
+# ========== 前端覆盖率与缓存 ==========
+coverage/
+*.lcov
+.eslintcache
+.stylelintcache
+
+# ========== 日志 ==========
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# OS / editor files
+# ========== 操作系统 / 编辑器 ==========
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
+*.swp
+*~
 
+# ========== 其他本地文件 ==========
+*.local
+.tmp/
+tmp/

@@ -7,6 +7,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+ARG APP_BUILD_VERSION=0.1.0
+ARG APP_BUILD_TIME=
+ENV APP_BUILD_VERSION=$APP_BUILD_VERSION \
+    APP_BUILD_TIME=$APP_BUILD_TIME
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends gcc libpq-dev curl \
  && rm -rf /var/lib/apt/lists/*
