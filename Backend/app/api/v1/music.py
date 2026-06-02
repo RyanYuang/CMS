@@ -28,6 +28,12 @@ def _serialize_list(value) -> list[str]:
     return []
 
 
+def _serialize_story(value) -> dict:
+    if not value or not isinstance(value, dict):
+        return {}
+    return {k: str(v) for k, v in value.items() if k in {"CN", "EN", "JP"} and v is not None and str(v).strip()}
+
+
 def _to_out(track: MusicTrack) -> MusicTrackOut:
     return MusicTrackOut(
         id=track.id,
@@ -39,6 +45,8 @@ def _to_out(track: MusicTrack) -> MusicTrackOut:
         duration_seconds=track.duration_seconds,
         cover_url=track.cover_url,
         audio_url=track.audio_url,
+        photos=_serialize_list(track.photos),
+        story=_serialize_story(track.story),
         tags=_serialize_list(track.tags),
         pinned=bool(track.pinned),
         owner_id=track.owner_id,
@@ -123,6 +131,8 @@ async def create_music(
         duration_seconds=body.duration_seconds,
         cover_url=body.cover_url or None,
         audio_url=normalize_netease_playlist_link_field(body.audio_url),
+        photos=list(body.photos or []),
+        story=dict(body.story or {}),
         tags=list(body.tags or []),
         pinned=bool(body.pinned),
         owner_id=user.id,
@@ -171,6 +181,10 @@ async def update_music(
         track.cover_url = payload["cover_url"] or None
     if "audio_url" in payload:
         track.audio_url = normalize_netease_playlist_link_field(payload["audio_url"]) if payload["audio_url"] else None
+    if "photos" in payload and payload["photos"] is not None:
+        track.photos = list(payload["photos"])
+    if "story" in payload and payload["story"] is not None:
+        track.story = dict(payload["story"])
     if "tags" in payload and payload["tags"] is not None:
         track.tags = list(payload["tags"])
     if "pinned" in payload and payload["pinned"] is not None:

@@ -25,6 +25,7 @@ class Movie(Base):
     year: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     duration_minutes: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     rating: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    work_category: Mapped[str] = mapped_column(String(20), nullable=False, default="feature", index=True)
     synopsis: Mapped[str] = mapped_column(Text, nullable=False, default="")
     cover_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     video_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

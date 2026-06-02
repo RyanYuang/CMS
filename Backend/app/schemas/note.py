@@ -10,6 +10,7 @@ class NoteCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     content: str = Field(default="")
     category: Optional[str] = Field(default=None, max_length=80)
+    written_at: Optional[datetime] = None
     pinned: bool = False
     tags: List[str] = Field(default_factory=list)
 
@@ -18,6 +19,7 @@ class NoteUpdate(BaseModel):
     title: Optional[str] = Field(default=None, min_length=1, max_length=200)
     content: Optional[str] = None
     category: Optional[str] = Field(default=None, max_length=80)
+    written_at: Optional[datetime] = None
     pinned: Optional[bool] = None
     tags: Optional[List[str]] = None
 
@@ -28,6 +30,7 @@ class NoteOut(BaseModel):
     title: str
     content: str
     category: Optional[str]
+    written_at: Optional[datetime]
     pinned: bool
     tags: List[str]
     owner_id: Optional[int]

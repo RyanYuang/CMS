@@ -1,6 +1,7 @@
 import {
   ArrowLeftOutlined,
   DeleteOutlined,
+  DownOutlined,
   EditOutlined,
   PauseCircleOutlined,
   PlayCircleOutlined,
@@ -8,6 +9,7 @@ import {
   PushpinFilled,
   PushpinOutlined,
   SearchOutlined,
+  UpOutlined,
   UploadOutlined,
 } from '@ant-design/icons'
 import {
@@ -17,6 +19,7 @@ import {
   Card,
   Empty,
   Form,
+  Image,
   Input,
   InputNumber,
   Modal,
@@ -26,15 +29,30 @@ import {
   Typography,
   Upload,
 } from 'antd'
-import type { UploadProps } from 'antd'
+import type { UploadFile, UploadProps } from 'antd'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { assetsApi, musicApi } from '../../services'
-import type { MusicTrack, MusicTrackCreate } from '../../services'
+import type { MusicStory, MusicTrack, MusicTrackCreate } from '../../services'
 import { hasPermission } from '../../utils/auth'
 import { formatDate } from '../../utils/format'
 
 const NETEASE_IFRAME_SRC_RE = /<iframe\b[^>]*\bsrc=(['"])([^"']+)\1[^>]*>\s*<\/iframe>/i
+const PHOTO_MAX_MB = 5
+const PHOTO_MAX_COUNT = 20
+const ALLOWED_PHOTO_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+type MusicFormValues = MusicTrackCreate & {
+  photos?: string[]
+  story?: MusicStory
+}
+
+const ensureStringArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).filter(Boolean)
+  }
+  return []
+}
 
 function extractIframeSrc(value?: string | null): string | null {
   if (!value) return null
@@ -44,6 +62,16 @@ function extractIframeSrc(value?: string | null): string | null {
   if (!src) return null
   if (src.startsWith('//')) return `https:${src}`
   return src
+}
+
+function normalizeStory(value: unknown): MusicStory {
+  if (!value || typeof value !== 'object') return {}
+  const raw = value as Record<string, unknown>
+  const story: MusicStory = {}
+  if (typeof raw.CN === 'string' && raw.CN.trim()) story.CN = raw.CN.trim()
+  if (typeof raw.EN === 'string' && raw.EN.trim()) story.EN = raw.EN.trim()
+  if (typeof raw.JP === 'string' && raw.JP.trim()) story.JP = raw.JP.trim()
+  return story
 }
 
 export function MusicPage() {
@@ -61,7 +89,7 @@ export function MusicPage() {
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [pinningId, setPinningId] = useState<number | null>(null)
-  const [form] = Form.useForm<MusicTrackCreate>()
+  const [form] = Form.useForm<MusicFormValues>()
 
   const loadMusic = (kw?: string) => {
     setLoading(true)
@@ -79,7 +107,7 @@ export function MusicPage() {
   const openCreate = () => {
     setEditing(null)
     form.resetFields()
-    form.setFieldsValue({ title: '', tags: [], pinned: false })
+    form.setFieldsValue({ title: '', tags: [], photos: [], story: {}, pinned: false })
     setModalOpen(true)
   }
 
@@ -95,6 +123,8 @@ export function MusicPage() {
       duration_seconds: item.duration_seconds ?? undefined,
       cover_url: item.cover_url ?? undefined,
       audio_url: item.audio_url ?? undefined,
+      photos: ensureStringArray(item.photos),
+      story: normalizeStory(item.story),
       tags: item.tags,
       pinned: item.pinned,
     })
@@ -103,6 +133,7 @@ export function MusicPage() {
 
   const submit = async () => {
     const values = await form.validateFields()
+    const story = normalizeStory(values.story)
     const payload: MusicTrackCreate = {
       title: values.title?.trim() ?? '',
       artist: values.artist?.trim() || null,
@@ -112,6 +143,8 @@ export function MusicPage() {
       duration_seconds: values.duration_seconds ?? null,
       cover_url: values.cover_url?.trim() || null,
       audio_url: values.audio_url?.trim() || null,
+      photos: values.photos ?? [],
+      story,
       tags: values.tags ?? [],
       pinned: Boolean(values.pinned),
     }
@@ -180,6 +213,66 @@ export function MusicPage() {
     },
   })
 
+  const photos = Form.useWatch('photos', form)
+  const photosSafe = ensureStringArray(photos)
+  const coverUrl = Form.useWatch('cover_url', form)
+
+  const photoUploadFileList: UploadFile[] = photosSafe.map((url, index) => ({
+    uid: `${url}-${index}`,
+    name: url.split('/').pop() ?? `photo-${index + 1}`,
+    status: 'done',
+    url,
+  }))
+
+  const movePhoto = (index: number, direction: 'up' | 'down') => {
+    const current = [...(form.getFieldValue('photos') ?? [])] as string[]
+    const target = direction === 'up' ? index - 1 : index + 1
+    if (target < 0 || target >= current.length) return
+    ;[current[index], current[target]] = [current[target], current[index]]
+    form.setFieldValue('photos', current)
+  }
+
+  const removePhoto = (url: string) => {
+    const current = (form.getFieldValue('photos') ?? []) as string[]
+    form.setFieldValue(
+      'photos',
+      current.filter((item) => item !== url),
+    )
+  }
+
+  const photoUploadProps: UploadProps = {
+    accept: 'image/*',
+    showUploadList: false,
+    beforeUpload: (file) => {
+      if (!ALLOWED_PHOTO_MIME_TYPES.has(file.type)) {
+        message.error('照片仅支持 JPG / PNG / WebP')
+        return Upload.LIST_IGNORE
+      }
+      const tooLarge = file.size > PHOTO_MAX_MB * 1024 * 1024
+      if (tooLarge) {
+        message.error(`单张照片不能超过 ${PHOTO_MAX_MB}MB`)
+        return Upload.LIST_IGNORE
+      }
+      const current = (form.getFieldValue('photos') ?? []) as string[]
+      if (current.length >= PHOTO_MAX_COUNT) {
+        message.error(`照片最多 ${PHOTO_MAX_COUNT} 张`)
+        return Upload.LIST_IGNORE
+      }
+      return true
+    },
+    customRequest: ({ file, onSuccess, onError }) => {
+      assetsApi
+        .upload(file as File)
+        .then((asset) => {
+          const current = ensureStringArray(form.getFieldValue('photos'))
+          form.setFieldValue('photos', [...current, asset.public_url])
+          onSuccess?.({})
+          message.success('照片上传成功')
+        })
+        .catch((err) => onError?.(err as Error))
+    },
+  }
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Card className="cms-card">
@@ -219,6 +312,11 @@ export function MusicPage() {
                     <Space direction="vertical" size={1}>
                       <Typography.Text strong>{item.title}</Typography.Text>
                       <Typography.Text type="secondary">{item.artist || '未知艺人'} · {item.album || '未知专辑'}</Typography.Text>
+                      {ensureStringArray(item.photos).length > 0 ? (
+                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                          {ensureStringArray(item.photos).length} 张照片
+                        </Typography.Text>
+                      ) : null}
                     </Space>
                   </Space>
                   <Space wrap>
@@ -238,7 +336,10 @@ export function MusicPage() {
       </Card>
 
       <Modal open={modalOpen} title={editing ? '编辑歌曲' : '添加歌曲'} onCancel={() => setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} width={760} destroyOnHidden>
-        <Form form={form} layout="vertical" initialValues={{ pinned: false }}>
+        <Form form={form} layout="vertical" initialValues={{ pinned: false, photos: [], story: {} }}>
+          <Form.Item name="photos" hidden>
+            <Input />
+          </Form.Item>
           <Form.Item label="歌曲标题" name="title" rules={[{ required: true, message: '请输入歌曲标题' }]}><Input maxLength={200} /></Form.Item>
           <Form.Item label="艺人" name="artist"><Input maxLength={200} /></Form.Item>
           <Form.Item
@@ -251,8 +352,61 @@ export function MusicPage() {
           <Form.Item label="流派" name="genre"><Input maxLength={80} /></Form.Item>
           <Form.Item label="年份" name="year"><InputNumber min={1900} max={2100} style={{ width: '100%' }} /></Form.Item>
           <Form.Item label="时长（秒）" name="duration_seconds"><InputNumber min={1} style={{ width: '100%' }} /></Form.Item>
-          <Form.Item label="封面 URL" name="cover_url"><Input placeholder="https://..." /></Form.Item>
-          <Form.Item><Upload {...uploadField('cover_url', 'image/*')}><Button icon={<UploadOutlined />}>上传封面</Button></Upload></Form.Item>
+          <Form.Item label="专辑封面" name="cover_url">
+            <Input placeholder="https://..." />
+          </Form.Item>
+          <Form.Item>
+            <Space align="start" wrap>
+              <Upload {...uploadField('cover_url', 'image/*')}>
+                <Button icon={<UploadOutlined />}>上传封面</Button>
+              </Upload>
+              {coverUrl ? (
+                <Image src={coverUrl} width={88} height={88} style={{ objectFit: 'cover', borderRadius: 4 }} />
+              ) : (
+                <Typography.Text type="secondary">上传后在此预览</Typography.Text>
+              )}
+            </Space>
+          </Form.Item>
+          <Form.Item
+            label={`照片集（最多 ${PHOTO_MAX_COUNT} 张，单张 <= ${PHOTO_MAX_MB}MB）`}
+            extra="将显示在音乐详情页的照片集区域"
+          >
+            <Space direction="vertical" style={{ width: '100%' }} size={10}>
+              <Upload {...photoUploadProps}>
+                <Button icon={<UploadOutlined />}>上传照片</Button>
+              </Upload>
+              {photoUploadFileList.length > 0 ? (
+                <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                  {photoUploadFileList.map((file, index) => (
+                    <Card key={file.uid} size="small">
+                      <Space style={{ justifyContent: 'space-between', width: '100%' }} align="center">
+                        <Space align="center">
+                          <Image src={file.url} width={88} height={66} style={{ objectFit: 'cover', borderRadius: 4 }} />
+                          <Typography.Text ellipsis style={{ maxWidth: 320 }}>{file.url}</Typography.Text>
+                        </Space>
+                        <Space>
+                          <Button icon={<UpOutlined />} size="small" disabled={index === 0} onClick={() => movePhoto(index, 'up')} />
+                          <Button icon={<DownOutlined />} size="small" disabled={index === photoUploadFileList.length - 1} onClick={() => movePhoto(index, 'down')} />
+                          <Button icon={<DeleteOutlined />} size="small" danger onClick={() => removePhoto(file.url ?? '')} />
+                        </Space>
+                      </Space>
+                    </Card>
+                  ))}
+                </Space>
+              ) : (
+                <Typography.Text type="secondary">暂无照片，可上传多张展示在音乐详情页</Typography.Text>
+              )}
+            </Space>
+          </Form.Item>
+          <Form.Item label="故事（中文）" name={['story', 'CN']}>
+            <Input.TextArea rows={4} placeholder="音乐背后的故事（中文）" />
+          </Form.Item>
+          <Form.Item label="故事（英文）" name={['story', 'EN']}>
+            <Input.TextArea rows={3} placeholder="Optional English story" />
+          </Form.Item>
+          <Form.Item label="故事（日文）" name={['story', 'JP']}>
+            <Input.TextArea rows={3} placeholder="日本語のストーリー（任意）" />
+          </Form.Item>
           <Form.Item
             label="音频 URL"
             name="audio_url"

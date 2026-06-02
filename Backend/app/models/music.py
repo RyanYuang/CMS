@@ -25,6 +25,8 @@ class MusicTrack(Base):
     duration_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     cover_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     audio_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    photos: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    story: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 

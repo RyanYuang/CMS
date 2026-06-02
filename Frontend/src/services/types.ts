@@ -275,6 +275,7 @@ export type Note = {
   title: string
   content: string
   category: string | null
+  written_at: string | null
   pinned: boolean
   tags: string[]
   owner_id: number | null
@@ -286,6 +287,7 @@ export type NoteCreate = {
   title: string
   content?: string
   category?: string | null
+  written_at?: string | null
   pinned?: boolean
   tags?: string[]
 }
@@ -313,6 +315,7 @@ export type Movie = {
   year: number | null
   duration_minutes: number | null
   rating: string | null
+  work_category: 'feature' | 'short' | 'media'
   synopsis: string
   cover_url: string | null
   video_url: string | null
@@ -333,6 +336,7 @@ export type MovieCreate = {
   year?: number | null
   duration_minutes?: number | null
   rating?: string | null
+  work_category?: 'feature' | 'short' | 'media'
   synopsis?: string
   cover_url?: string | null
   video_url?: string | null
@@ -366,11 +370,19 @@ export type MusicTrack = {
   duration_seconds: number | null
   cover_url: string | null
   audio_url: string | null
+  photos: string[]
+  story: MusicStory
   tags: string[]
   pinned: boolean
   owner_id: number | null
   created_at: string
   updated_at: string
+}
+
+export type MusicStory = {
+  CN?: string
+  EN?: string
+  JP?: string
 }
 
 export type MusicTrackCreate = {
@@ -382,6 +394,8 @@ export type MusicTrackCreate = {
   duration_seconds?: number | null
   cover_url?: string | null
   audio_url?: string | null
+  photos?: string[]
+  story?: MusicStory
   tags?: string[]
   pinned?: boolean
 }

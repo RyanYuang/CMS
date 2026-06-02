@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import Boolean, ForeignKey, Index, Integer, JSON, String, Text
+from datetime import datetime
+
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -24,6 +26,7 @@ class Note(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
     category: Mapped[Optional[str]] = mapped_column(String(80), nullable=True, index=True)
+    written_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     pinned: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
 

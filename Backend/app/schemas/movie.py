@@ -1,9 +1,11 @@
 """电影 schema。"""
 
 from datetime import datetime
-from typing import Optional, List
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+WorkCategory = Literal["feature", "short", "media"]
 
 from app.config import settings
 
@@ -34,6 +36,7 @@ class MovieCreate(BaseModel):
     year: Optional[int] = None
     duration_minutes: Optional[int] = None
     rating: Optional[str] = Field(default=None, max_length=20)
+    work_category: WorkCategory = "feature"
     synopsis: str = Field(default="")
     cover_url: Optional[str] = Field(default=None, max_length=500)
     video_url: Optional[str] = Field(default=None, max_length=500)
@@ -56,6 +59,7 @@ class MovieUpdate(BaseModel):
     year: Optional[int] = None
     duration_minutes: Optional[int] = None
     rating: Optional[str] = Field(default=None, max_length=20)
+    work_category: Optional[WorkCategory] = None
     synopsis: Optional[str] = None
     cover_url: Optional[str] = Field(default=None, max_length=500)
     video_url: Optional[str] = Field(default=None, max_length=500)
@@ -82,6 +86,7 @@ class MovieOut(BaseModel):
     year: Optional[int]
     duration_minutes: Optional[int]
     rating: Optional[str]
+    work_category: str
     synopsis: str
     cover_url: Optional[str]
     video_url: Optional[str]

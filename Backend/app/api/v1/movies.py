@@ -39,6 +39,7 @@ def _to_out(movie: Movie) -> MovieOut:
         year=movie.year,
         duration_minutes=movie.duration_minutes,
         rating=movie.rating,
+        work_category=movie.work_category or "feature",
         synopsis=movie.synopsis or "",
         cover_url=movie.cover_url,
         video_url=movie.video_url,
@@ -60,6 +61,7 @@ async def _reload(session: AsyncSession, movie_id: int) -> Movie:
 async def list_movies(
     keyword: Optional[str] = Query(None, max_length=200),
     genre: Optional[str] = Query(None, max_length=80),
+    work_category: Optional[str] = Query(None, max_length=20),
     year: Optional[int] = Query(None),
     pinned: Optional[bool] = Query(None),
     pp: PageParams = Depends(page_params),
@@ -86,6 +88,9 @@ async def list_movies(
         genre_like = f"%{genre}%"
         stmt = stmt.where(cast(Movie.genres, String).ilike(genre_like))
         count_stmt = count_stmt.where(cast(Movie.genres, String).ilike(genre_like))
+    if work_category:
+        stmt = stmt.where(Movie.work_category == work_category)
+        count_stmt = count_stmt.where(Movie.work_category == work_category)
     if year is not None:
         stmt = stmt.where(Movie.year == year)
         count_stmt = count_stmt.where(Movie.year == year)
@@ -161,6 +166,7 @@ async def create_movie(
         year=body.year,
         duration_minutes=body.duration_minutes,
         rating=body.rating or None,
+        work_category=body.work_category or "feature",
         synopsis=body.synopsis or "",
         cover_url=body.cover_url or None,
         video_url=body.video_url or None,
@@ -213,6 +219,8 @@ async def update_movie(
         movie.duration_minutes = payload["duration_minutes"]
     if "rating" in payload:
         movie.rating = payload["rating"] or None
+    if "work_category" in payload and payload["work_category"] is not None:
+        movie.work_category = payload["work_category"]
     if "synopsis" in payload and payload["synopsis"] is not None:
         movie.synopsis = payload["synopsis"]
     if "cover_url" in payload:

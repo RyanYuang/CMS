@@ -47,6 +47,18 @@ const MOVIE_STILL_MAX_MB = 5
 const MOVIE_STILL_MAX_COUNT = 20
 const ALLOWED_STILL_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
+const WORK_CATEGORY_OPTIONS = [
+  { value: 'feature', label: '长片' },
+  { value: 'short', label: '短片' },
+  { value: 'media', label: '自媒体' },
+] as const
+
+const WORK_CATEGORY_LABEL: Record<string, string> = {
+  feature: '长片',
+  short: '短片',
+  media: '自媒体',
+}
+
 const ensureStringArray = (value: unknown): string[] => {
   if (Array.isArray(value)) {
     return value.map((item) => String(item)).filter(Boolean)
@@ -99,7 +111,16 @@ export function MoviesPage() {
   const openCreate = () => {
     setEditing(null)
     form.resetFields()
-    form.setFieldsValue({ title: '', synopsis: '', cast: [], genres: [], stills: [], tags: [], pinned: false })
+    form.setFieldsValue({
+      title: '',
+      synopsis: '',
+      cast: [],
+      genres: [],
+      stills: [],
+      tags: [],
+      work_category: 'feature',
+      pinned: false,
+    })
     setModalOpen(true)
   }
 
@@ -115,6 +136,7 @@ export function MoviesPage() {
       year: movie.year ?? undefined,
       duration_minutes: movie.duration_minutes ?? undefined,
       rating: movie.rating ?? undefined,
+      work_category: movie.work_category ?? 'feature',
       synopsis: movie.synopsis,
       cover_url: movie.cover_url ?? undefined,
       video_url: movie.video_url ?? undefined,
@@ -136,6 +158,7 @@ export function MoviesPage() {
       year: values.year ?? null,
       duration_minutes: values.duration_minutes ?? null,
       rating: values.rating?.trim() || null,
+      work_category: values.work_category ?? 'feature',
       synopsis: values.synopsis ?? '',
       cover_url: values.cover_url?.trim() || null,
       video_url: values.video_url?.trim() || null,
@@ -320,7 +343,13 @@ export function MoviesPage() {
     { title: '导演', dataIndex: 'director', width: 160, render: (value: string | null) => value || '-' },
     { title: '类型', dataIndex: 'genres', render: (value: string[]) => <Space wrap>{value.map((g) => <Tag key={g}>{g}</Tag>)}</Space> },
     { title: '时长', dataIndex: 'duration_minutes', width: 90, render: (value: number | null) => (value ? `${value}分钟` : '-') },
-    { title: '分级', dataIndex: 'rating', width: 90, render: (value: string | null) => value || '-' },
+    {
+      title: '作品分类',
+      dataIndex: 'work_category',
+      width: 100,
+      render: (value: string) => <Tag>{WORK_CATEGORY_LABEL[value] ?? value}</Tag>,
+    },
+    { title: '内容分级', dataIndex: 'rating', width: 90, render: (value: string | null) => value || '-' },
     {
       title: '状态',
       dataIndex: 'pinned',
@@ -384,7 +413,7 @@ export function MoviesPage() {
       </Card>
 
       <Modal open={modalOpen} title={editing ? '编辑电影' : '添加电影'} onCancel={() => setModalOpen(false)} onOk={() => void submit()} confirmLoading={submitting} width={760} destroyOnHidden>
-        <Form form={form} layout="vertical" initialValues={{ pinned: false }}>
+        <Form form={form} layout="vertical" initialValues={{ pinned: false, work_category: 'feature' }}>
           <Form.Item name="stills" hidden>
             <Input />
           </Form.Item>
@@ -397,7 +426,16 @@ export function MoviesPage() {
           <Form.Item label="类型" name="genres"><Select mode="tags" placeholder="输入后回车添加" /></Form.Item>
           <Form.Item label="年份" name="year"><InputNumber min={1900} max={2100} style={{ width: '100%' }} /></Form.Item>
           <Form.Item label="时长（分钟）" name="duration_minutes"><InputNumber min={1} style={{ width: '100%' }} /></Form.Item>
-          <Form.Item label="分级" name="rating"><Input maxLength={20} /></Form.Item>
+          <Form.Item
+            label="作品分类"
+            name="work_category"
+            rules={[{ required: true, message: '请选择作品分类' }]}
+          >
+            <Select options={[...WORK_CATEGORY_OPTIONS]} />
+          </Form.Item>
+          <Form.Item label="内容分级" name="rating" extra="如 PG-13，与长片/短片/自媒体分类无关">
+            <Input maxLength={20} placeholder="可选" />
+          </Form.Item>
           <Form.Item label="简介" name="synopsis"><Input.TextArea rows={4} /></Form.Item>
           <Form.Item label="封面 URL" name="cover_url"><Input placeholder="https://..." /></Form.Item>
           <Form.Item><Upload {...uploadField('cover_url', 'image/*')}><Button icon={<UploadOutlined />}>上传封面</Button></Upload></Form.Item>

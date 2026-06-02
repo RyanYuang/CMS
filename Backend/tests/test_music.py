@@ -19,6 +19,11 @@ async def test_music_crud_pin_search(client: AsyncClient, auth_headers: dict[str
             "duration_seconds": 272,
             "cover_url": "https://example.com/song.jpg",
             "audio_url": "https://example.com/song.mp3",
+            "photos": [
+                "https://example.com/photo-1.jpg",
+                "https://example.com/photo-2.webp",
+            ],
+            "story": {"CN": "中文故事", "EN": "English story"},
             "tags": ["rock", "live"],
             "pinned": False,
         },
@@ -26,6 +31,11 @@ async def test_music_crud_pin_search(client: AsyncClient, auth_headers: dict[str
     )
     assert create.status_code == 200, create.text
     track = create.json()
+    assert track["photos"] == [
+        "https://example.com/photo-1.jpg",
+        "https://example.com/photo-2.webp",
+    ]
+    assert track["story"]["CN"] == "中文故事"
     track_id = track["id"]
 
     create2 = await client.post(

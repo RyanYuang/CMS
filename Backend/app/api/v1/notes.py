@@ -34,6 +34,7 @@ def _to_out(note: Note) -> NoteOut:
         title=note.title,
         content=note.content or "",
         category=note.category,
+        written_at=note.written_at,
         pinned=bool(note.pinned),
         tags=_serialize_tags(note.tags),
         owner_id=note.owner_id,
@@ -76,7 +77,7 @@ async def list_notes(
         stmt = stmt.where(Note.category == category)
         count_stmt = count_stmt.where(Note.category == category)
 
-    stmt = stmt.order_by(Note.pinned.desc(), Note.updated_at.desc(), Note.id.desc())
+    stmt = stmt.order_by(Note.pinned.desc(), Note.written_at.desc(), Note.updated_at.desc(), Note.id.desc())
     stmt = stmt.offset(pp.offset).limit(pp.page_size)
 
     rows = (await session.execute(stmt)).scalars().all()
@@ -128,6 +129,7 @@ async def create_note(
         title=body.title.strip(),
         content=body.content or "",
         category=(body.category or None),
+        written_at=body.written_at,
         pinned=bool(body.pinned),
         tags=list(body.tags or []),
         owner_id=user.id,
@@ -170,6 +172,8 @@ async def update_note(
         note.content = payload["content"]
     if "category" in payload:
         note.category = payload["category"] or None
+    if "written_at" in payload:
+        note.written_at = payload["written_at"]
     if "pinned" in payload and payload["pinned"] is not None:
         note.pinned = bool(payload["pinned"])
     if "tags" in payload and payload["tags"] is not None:

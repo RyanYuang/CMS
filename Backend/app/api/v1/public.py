@@ -6,7 +6,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import func, select, nulls_last
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -56,6 +56,7 @@ class PublicNoteOut(BaseModel):
     title: str
     content: str
     category: Optional[str]
+    written_at: Optional[datetime]
     pinned: bool
     tags: list[str]
     created_at: datetime
@@ -73,6 +74,7 @@ class PublicMovieOut(BaseModel):
     stills: list[str]
     genres: list[str]
     tags: list[str]
+    work_category: str
     pinned: bool
     updated_at: datetime
 
@@ -85,6 +87,8 @@ class PublicMusicOut(BaseModel):
     year: Optional[int]
     cover_url: Optional[str]
     audio_url: Optional[str]
+    photos: list[str]
+    story: dict
     tags: list[str]
     pinned: bool
     updated_at: datetime
@@ -202,6 +206,7 @@ async def public_movies(
             stills=_serialize_string_list(movie.stills),
             genres=_serialize_string_list(movie.genres),
             tags=_serialize_string_list(movie.tags),
+            work_category=movie.work_category or "feature",
             pinned=bool(movie.pinned),
             updated_at=movie.updated_at,
         )
@@ -230,6 +235,8 @@ async def public_music(
             year=track.year,
             cover_url=track.cover_url,
             audio_url=track.audio_url,
+            photos=_serialize_string_list(track.photos),
+            story=track.story if isinstance(track.story, dict) else {},
             tags=_serialize_string_list(track.tags),
             pinned=bool(track.pinned),
             updated_at=track.updated_at,
@@ -245,7 +252,12 @@ async def public_notes(
 ) -> Page[PublicNoteOut]:
     stmt = (
         select(Note)
-        .order_by(Note.pinned.desc(), Note.updated_at.desc(), Note.id.desc())
+        .order_by(
+            Note.pinned.desc(),
+            nulls_last(Note.written_at.desc()),
+            Note.created_at.desc(),
+            Note.id.desc(),
+        )
         .offset(pp.offset)
         .limit(pp.page_size)
     )
@@ -261,6 +273,7 @@ async def public_notes(
                 title=note.title,
                 content=note.content or "",
                 category=note.category,
+                written_at=note.written_at,
                 pinned=bool(note.pinned),
                 tags=_serialize_note_tags(note.tags),
                 created_at=note.created_at,

@@ -13,6 +13,7 @@ import {
   Card,
   Checkbox,
   Col,
+  DatePicker,
   Empty,
   Form,
   Input,
@@ -23,6 +24,7 @@ import {
   Tag,
   Typography,
 } from 'antd'
+import dayjs, { type Dayjs } from 'dayjs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useNavigate } from 'react-router-dom'
@@ -36,6 +38,7 @@ type NoteFormValues = {
   title: string
   content: string
   category?: string
+  writtenAt?: Dayjs | null
   tagsText?: string
   pinned?: boolean
 }
@@ -77,7 +80,9 @@ export function NotesPage() {
       if (a.pinned !== b.pinned) {
         return a.pinned ? -1 : 1
       }
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      const aDate = a.written_at ?? a.created_at
+      const bDate = b.written_at ?? b.created_at
+      return new Date(bDate).getTime() - new Date(aDate).getTime()
     })
     return list
   }, [notes])
@@ -114,6 +119,7 @@ export function NotesPage() {
       title: note.title,
       content: note.content,
       category: note.category ?? '',
+      writtenAt: note.written_at ? dayjs(note.written_at) : null,
       tagsText: tagsToText(note.tags),
       pinned: note.pinned,
     })
@@ -126,6 +132,7 @@ export function NotesPage() {
       title: values.title.trim(),
       content: values.content,
       category: values.category?.trim() ? values.category.trim() : null,
+      written_at: values.writtenAt ? values.writtenAt.startOf('day').toISOString() : null,
       pinned: Boolean(values.pinned),
       tags: textToTags(values.tagsText),
     }
@@ -316,6 +323,13 @@ export function NotesPage() {
               </Card>
             </Form.Item>
           ) : null}
+          <Form.Item
+            label="写作日期"
+            name="writtenAt"
+            extra="可选。填写后前台文学页将显示该日期；不填则使用创建日期。"
+          >
+            <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
+          </Form.Item>
           <Form.Item label="分类" name="category" rules={[{ max: 80, message: '分类最多 80 个字符' }]}>
             <Input placeholder="例如：学习 / 工作 / 灵感" maxLength={80} />
           </Form.Item>
@@ -426,7 +440,10 @@ function NoteCard({ note, canWrite, canDelete, pinning, deleting, onOpen, onPin,
         ))}
       </Space>
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        更新于 {formatDate(note.updated_at)}
+        {note.written_at ? `写作于 ${formatDate(note.written_at)}` : `创建于 ${formatDate(note.created_at)}`}
+        {note.written_at && note.updated_at !== note.written_at
+          ? ` · 更新于 ${formatDate(note.updated_at)}`
+          : null}
       </Typography.Text>
     </Card>
   )

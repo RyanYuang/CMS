@@ -14,6 +14,7 @@ async def test_notes_crud_pin_search(client: AsyncClient, auth_headers: dict[str
             "title": "FastAPI 学习笔记",
             "content": "# 标题\n这是一段 **Markdown** 内容。",
             "category": "学习",
+            "written_at": "2024-03-02T00:00:00+00:00",
             "tags": ["python", "fastapi"],
             "pinned": False,
         },
@@ -24,6 +25,8 @@ async def test_notes_crud_pin_search(client: AsyncClient, auth_headers: dict[str
     assert note["id"] > 0
     assert note["pinned"] is False
     assert note["tags"] == ["python", "fastapi"]
+    assert note["written_at"] is not None
+    assert note["written_at"].startswith("2024-03-02")
     note_id = note["id"]
 
     other = await client.post(
