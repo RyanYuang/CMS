@@ -22,6 +22,7 @@ async def test_movies_crud_pin_search(client: AsyncClient, auth_headers: dict[st
             "work_category": "short",
             "synopsis": "穿越虫洞寻找新家园",
             "cover_url": "https://example.com/interstellar.jpg",
+            "production_sheet_url": "https://example.com/interstellar-sheet.jpg",
             "video_url": "https://example.com/interstellar.mp4",
             "stills": [
                 "https://example.com/interstellar-still-1.jpg",
@@ -35,6 +36,7 @@ async def test_movies_crud_pin_search(client: AsyncClient, auth_headers: dict[st
     assert create.status_code == 200, create.text
     movie = create.json()
     assert movie["work_category"] == "short"
+    assert movie["production_sheet_url"] == "https://example.com/interstellar-sheet.jpg"
     movie_id = movie["id"]
 
     create2 = await client.post(

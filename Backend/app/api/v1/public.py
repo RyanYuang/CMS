@@ -63,6 +63,17 @@ class PublicNoteOut(BaseModel):
     updated_at: datetime
 
 
+class PublicCrewRole(BaseModel):
+    CN: str
+    EN: str = ""
+    JP: str = ""
+
+
+class PublicCrewCreditEntry(BaseModel):
+    role: PublicCrewRole
+    names: list[str]
+
+
 class PublicMovieOut(BaseModel):
     id: int
     title: str
@@ -70,6 +81,8 @@ class PublicMovieOut(BaseModel):
     year: Optional[int]
     synopsis: str
     cover_url: Optional[str]
+    production_sheet_url: Optional[str]
+    crew_credits: list[PublicCrewCreditEntry] = []
     video_url: Optional[str]
     stills: list[str]
     genres: list[str]
@@ -108,6 +121,34 @@ def _serialize_string_list(value) -> list[str]:
     if isinstance(value, list):
         return [str(item) for item in value if item is not None]
     return []
+
+
+def _serialize_public_crew_credits(value) -> list[PublicCrewCreditEntry]:
+    if not value or not isinstance(value, list):
+        return []
+    rows: list[PublicCrewCreditEntry] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        role_raw = item.get("role")
+        names_raw = item.get("names")
+        if not isinstance(role_raw, dict) or not isinstance(names_raw, list):
+            continue
+        cn = str(role_raw.get("CN") or "").strip()
+        if not cn:
+            continue
+        names = [str(name).strip() for name in names_raw if name and str(name).strip()]
+        if not names:
+            continue
+        en = str(role_raw.get("EN") or cn).strip() or cn
+        jp = str(role_raw.get("JP") or en).strip() or en
+        rows.append(
+            PublicCrewCreditEntry(
+                role=PublicCrewRole(CN=cn, EN=en, JP=jp),
+                names=names,
+            )
+        )
+    return rows
 
 
 @router.get("/articles", response_model=Page[ArticleListItem])
@@ -202,6 +243,8 @@ async def public_movies(
             year=movie.year,
             synopsis=movie.synopsis or "",
             cover_url=movie.cover_url,
+            production_sheet_url=movie.production_sheet_url,
+            crew_credits=_serialize_public_crew_credits(movie.crew_credits),
             video_url=movie.video_url,
             stills=_serialize_string_list(movie.stills),
             genres=_serialize_string_list(movie.genres),

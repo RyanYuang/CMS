@@ -32,7 +32,8 @@ import type { UploadFile, UploadProps } from 'antd'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { assetsApi, moviesApi } from '../../services'
-import type { Movie, MovieCreate } from '../../services'
+import type { CrewCreditEntry, Movie, MovieCreate } from '../../services'
+import { extractApiErrorMessage } from '../../services/http'
 import { hasPermission } from '../../utils/auth'
 import { formatDate } from '../../utils/format'
 
@@ -41,11 +42,13 @@ type MovieFormValues = Omit<MovieCreate, 'cast' | 'genres' | 'tags'> & {
   genres?: string[]
   stills?: string[]
   tags?: string[]
+  crew_credits?: CrewCreditEntry[]
 }
 
 const MOVIE_STILL_MAX_MB = 5
 const MOVIE_STILL_MAX_COUNT = 20
 const ALLOWED_STILL_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const CREW_SHEET_ACCEPT = '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 const WORK_CATEGORY_OPTIONS = [
   { value: 'feature', label: '长片' },
@@ -91,6 +94,7 @@ export function MoviesPage() {
   const [editing, setEditing] = useState<Movie | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [preview, setPreview] = useState<Movie | null>(null)
+  const [crewSheetUploading, setCrewSheetUploading] = useState(false)
   const [form] = Form.useForm<MovieFormValues>()
 
   const loadMovies = (kw?: string) => {
@@ -118,6 +122,7 @@ export function MoviesPage() {
       genres: [],
       stills: [],
       tags: [],
+      crew_credits: [],
       work_category: 'feature',
       pinned: false,
     })
@@ -139,9 +144,11 @@ export function MoviesPage() {
       work_category: movie.work_category ?? 'feature',
       synopsis: movie.synopsis,
       cover_url: movie.cover_url ?? undefined,
+      production_sheet_url: movie.production_sheet_url ?? undefined,
       video_url: movie.video_url ?? undefined,
       stills: ensureStringArray(movie.stills),
       tags: ensureStringArray(movie.tags),
+      crew_credits: movie.crew_credits ?? [],
       pinned: movie.pinned,
     })
     setModalOpen(true)
@@ -161,9 +168,11 @@ export function MoviesPage() {
       work_category: values.work_category ?? 'feature',
       synopsis: values.synopsis ?? '',
       cover_url: values.cover_url?.trim() || null,
+      production_sheet_url: values.production_sheet_url?.trim() || null,
       video_url: values.video_url?.trim() || null,
       stills: values.stills ?? [],
       tags: values.tags ?? [],
+      crew_credits: values.crew_credits ?? [],
       pinned: Boolean(values.pinned),
     }
     setSubmitting(true)
@@ -216,7 +225,33 @@ export function MoviesPage() {
     }
   }
 
-  const uploadField = (field: 'cover_url' | 'video_url', accept: string): UploadProps => ({
+  const productionSheetUrl = Form.useWatch('production_sheet_url', form)
+  const crewCredits = (Form.useWatch('crew_credits', form) ?? []) as CrewCreditEntry[]
+
+  const handleCrewSheetUpload = async (file: File) => {
+    setCrewSheetUploading(true)
+    try {
+      if (editing) {
+        const updated = await moviesApi.uploadCrewSheet(editing.id, file)
+        form.setFieldValue('crew_credits', updated.crew_credits ?? [])
+        setMovies((prev) => prev.map((row) => (row.id === updated.id ? updated : row)))
+        message.success(`演职员表已解析并保存（${updated.crew_credits?.length ?? 0} 项）`)
+        return
+      }
+      const parsed = await moviesApi.parseCrewSheet(file)
+      form.setFieldValue('crew_credits', parsed.crew_credits)
+      message.success(`演职员表已解析（${parsed.row_count} 项），保存电影后生效`)
+    } catch (err) {
+      message.error(extractApiErrorMessage(err))
+    } finally {
+      setCrewSheetUploading(false)
+    }
+  }
+
+  const uploadField = (
+    field: 'cover_url' | 'video_url' | 'production_sheet_url',
+    accept: string,
+  ): UploadProps => ({
     accept,
     showUploadList: false,
     customRequest: ({ file, onSuccess, onError }) => {
@@ -351,6 +386,19 @@ export function MoviesPage() {
     },
     { title: '内容分级', dataIndex: 'rating', width: 90, render: (value: string | null) => value || '-' },
     {
+      title: '制作表',
+      dataIndex: 'production_sheet_url',
+      width: 90,
+      render: (value: string | null) => (value ? <Tag color="blue">已上传</Tag> : <Tag>无</Tag>),
+    },
+    {
+      title: '演职员表',
+      dataIndex: 'crew_credits',
+      width: 100,
+      render: (value: CrewCreditEntry[] | undefined) =>
+        value && value.length > 0 ? <Tag color="green">{value.length} 项</Tag> : <Tag>无</Tag>,
+    },
+    {
       title: '状态',
       dataIndex: 'pinned',
       width: 90,
@@ -417,6 +465,7 @@ export function MoviesPage() {
           <Form.Item name="stills" hidden>
             <Input />
           </Form.Item>
+          <Form.Item name="crew_credits" hidden noStyle />
           <Form.Item label="电影标题" name="title" rules={[{ required: true, message: '请输入电影标题' }]}>
             <Input maxLength={200} />
           </Form.Item>
@@ -439,6 +488,100 @@ export function MoviesPage() {
           <Form.Item label="简介" name="synopsis"><Input.TextArea rows={4} /></Form.Item>
           <Form.Item label="封面 URL" name="cover_url"><Input placeholder="https://..." /></Form.Item>
           <Form.Item><Upload {...uploadField('cover_url', 'image/*')}><Button icon={<UploadOutlined />}>上传封面</Button></Upload></Form.Item>
+          <Form.Item
+            label="电影制作表"
+            name="production_sheet_url"
+            extra="支持 JPG / PNG / WebP 图片或 PDF，将显示在前台影片详情页"
+          >
+            <Input placeholder="https://..." />
+          </Form.Item>
+          <Form.Item>
+            <Space align="start" wrap>
+              <Upload {...uploadField('production_sheet_url', 'image/*,.pdf,application/pdf')}>
+                <Button icon={<UploadOutlined />}>上传制作表</Button>
+              </Upload>
+              {productionSheetUrl ? (
+                /\.pdf(\?|$)/i.test(productionSheetUrl) ? (
+                  <Typography.Link href={productionSheetUrl} target="_blank" rel="noreferrer">
+                    预览 PDF 制作表
+                  </Typography.Link>
+                ) : (
+                  <Image src={productionSheetUrl} width={88} height={120} style={{ objectFit: 'cover', borderRadius: 4 }} />
+                )
+              ) : (
+                <Typography.Text type="secondary">上传后在此预览</Typography.Text>
+              )}
+            </Space>
+          </Form.Item>
+          <Form.Item
+            label="演职员表（Excel）"
+            extra="格式：A 列为职位，B 列起为人员（首行可为「职位 | 人员」表头）。支持 CN / EN / JP 职位翻译。"
+          >
+            <Space direction="vertical" style={{ width: '100%' }} size={10}>
+              <Upload
+                accept={CREW_SHEET_ACCEPT}
+                showUploadList={false}
+                disabled={!canWrite || crewSheetUploading}
+                beforeUpload={(file) => {
+                  const name = file.name.toLowerCase()
+                  if (!name.endsWith('.xlsx') && !name.endsWith('.xlsm')) {
+                    message.error('请上传 .xlsx 或 .xlsm 文件')
+                    return Upload.LIST_IGNORE
+                  }
+                  void handleCrewSheetUpload(file as File)
+                  return false
+                }}
+              >
+                <Button icon={<UploadOutlined />} loading={crewSheetUploading}>
+                  上传并解析演职员表
+                </Button>
+              </Upload>
+              {crewCredits.length > 0 ? (
+                <Table
+                  size="small"
+                  pagination={false}
+                  rowKey={(_, index) => String(index)}
+                  dataSource={crewCredits}
+                  columns={[
+                    {
+                      title: '职位（中）',
+                      dataIndex: ['role', 'CN'],
+                      width: 120,
+                    },
+                    {
+                      title: 'EN',
+                      dataIndex: ['role', 'EN'],
+                      width: 120,
+                    },
+                    {
+                      title: 'JP',
+                      dataIndex: ['role', 'JP'],
+                      width: 120,
+                    },
+                    {
+                      title: '人员',
+                      dataIndex: 'names',
+                      render: (names: string[]) => names.join('、'),
+                    },
+                  ]}
+                />
+              ) : (
+                <Typography.Text type="secondary">尚未上传演职员表</Typography.Text>
+              )}
+              {crewCredits.length > 0 && (
+                <Button
+                  danger
+                  size="small"
+                  onClick={() => {
+                    form.setFieldValue('crew_credits', [])
+                    message.info('已清空演职员表，保存电影后生效')
+                  }}
+                >
+                  清空演职员表
+                </Button>
+              )}
+            </Space>
+          </Form.Item>
           <Form.Item label="视频 URL" name="video_url"><Input placeholder="https://..." /></Form.Item>
           <Form.Item><Upload {...uploadField('video_url', 'video/*')}><Button icon={<UploadOutlined />}>上传视频</Button></Upload></Form.Item>
           <Form.Item label={`静帧（最多 ${MOVIE_STILL_MAX_COUNT} 张，单张 <= ${MOVIE_STILL_MAX_MB}MB）`}>

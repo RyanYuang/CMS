@@ -28,6 +28,8 @@ class Movie(Base):
     work_category: Mapped[str] = mapped_column(String(20), nullable=False, default="feature", index=True)
     synopsis: Mapped[str] = mapped_column(Text, nullable=False, default="")
     cover_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    production_sheet_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    crew_credits: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     video_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     stills: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)

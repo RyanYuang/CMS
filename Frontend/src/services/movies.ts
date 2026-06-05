@@ -1,5 +1,14 @@
 import { http } from './http'
-import type { Movie, MovieCount, MovieCreate, MovieListQuery, MovieUpdate, OkResponse, PageResult } from './types'
+import type {
+  CrewCreditsParseResult,
+  Movie,
+  MovieCount,
+  MovieCreate,
+  MovieListQuery,
+  MovieUpdate,
+  OkResponse,
+  PageResult,
+} from './types'
 
 export const moviesApi = {
   list(params: MovieListQuery = {}) {
@@ -22,5 +31,19 @@ export const moviesApi = {
   },
   remove(id: number) {
     return http.delete<OkResponse, OkResponse>(`/v1/movies/${id}`)
+  },
+  parseCrewSheet(file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return http.post<CrewCreditsParseResult, CrewCreditsParseResult>('/v1/movies/parse-crew-sheet', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  uploadCrewSheet(id: number, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return http.post<Movie, Movie>(`/v1/movies/${id}/crew-sheet`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
   },
 }

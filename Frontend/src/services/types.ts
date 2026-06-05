@@ -305,6 +305,22 @@ export type NoteListQuery = {
   page_size?: number
 }
 
+export type LocalizedLabel = {
+  CN: string
+  EN: string
+  JP?: string
+}
+
+export type CrewCreditEntry = {
+  role: LocalizedLabel
+  names: string[]
+}
+
+export type CrewCreditsParseResult = {
+  crew_credits: CrewCreditEntry[]
+  row_count: number
+}
+
 export type Movie = {
   id: number
   title: string
@@ -318,6 +334,8 @@ export type Movie = {
   work_category: 'feature' | 'short' | 'media'
   synopsis: string
   cover_url: string | null
+  production_sheet_url: string | null
+  crew_credits: CrewCreditEntry[]
   video_url: string | null
   stills: string[]
   tags: string[]
@@ -339,6 +357,8 @@ export type MovieCreate = {
   work_category?: 'feature' | 'short' | 'media'
   synopsis?: string
   cover_url?: string | null
+  production_sheet_url?: string | null
+  crew_credits?: CrewCreditEntry[]
   video_url?: string | null
   stills?: string[]
   tags?: string[]

@@ -23,7 +23,7 @@ from app.schemas.tag import TagCreate, TagOut
 from app.schemas.asset import AssetOut, AssetListItem
 from app.schemas.audit import AuditLogOut
 from app.schemas.link import LinkCreate, LinkOut, LinkReorder, LinkUpdate
-from app.schemas.movie import MovieCount, MovieCreate, MovieOut, MovieUpdate
+from app.schemas.movie import CrewCreditsParseOut, MovieCount, MovieCreate, MovieOut, MovieUpdate
 from app.schemas.music import (
     MusicTrackCount,
     MusicTrackCreate,
@@ -67,6 +67,7 @@ __all__ = [
     "LinkOut",
     "LinkReorder",
     "LinkUpdate",
+    "CrewCreditsParseOut",
     "MovieCount",
     "MovieCreate",
     "MovieOut",

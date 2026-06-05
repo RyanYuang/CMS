@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, File, Query, Request, UploadFile
 from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +11,9 @@ from app.deps import current_user, require_permissions
 from app.exceptions import NotFound
 from app.models import AuditAction, Movie, User
 from app.permissions import Perm
-from app.schemas import MovieCount, MovieCreate, MovieOut, MovieUpdate, OkResponse
+from app.schemas import CrewCreditsParseOut, MovieCount, MovieCreate, MovieOut, MovieUpdate, OkResponse
+from app.schemas.movie import CrewCreditEntry, _normalize_crew_credits
+from app.services.crew_sheet_parser import parse_crew_sheet_bytes
 from app.schemas.common import Page
 from app.services import audit
 from app.utils.debug_ndjson import debug_log
@@ -28,6 +30,20 @@ def _serialize_list(value) -> list[str]:
     return []
 
 
+def _serialize_crew_credits(value) -> list[CrewCreditEntry]:
+    if not value or not isinstance(value, list):
+        return []
+    parsed: list[CrewCreditEntry] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        try:
+            parsed.append(CrewCreditEntry.model_validate(item))
+        except Exception:
+            continue
+    return parsed
+
+
 def _to_out(movie: Movie) -> MovieOut:
     return MovieOut(
         id=movie.id,
@@ -42,6 +58,8 @@ def _to_out(movie: Movie) -> MovieOut:
         work_category=movie.work_category or "feature",
         synopsis=movie.synopsis or "",
         cover_url=movie.cover_url,
+        production_sheet_url=movie.production_sheet_url,
+        crew_credits=_serialize_crew_credits(movie.crew_credits),
         video_url=movie.video_url,
         stills=_serialize_list(movie.stills),
         tags=_serialize_list(movie.tags),
@@ -169,6 +187,8 @@ async def create_movie(
         work_category=body.work_category or "feature",
         synopsis=body.synopsis or "",
         cover_url=body.cover_url or None,
+        production_sheet_url=body.production_sheet_url or None,
+        crew_credits=_normalize_crew_credits(body.crew_credits),
         video_url=body.video_url or None,
         stills=list(body.stills or []),
         tags=list(body.tags or []),
@@ -225,6 +245,11 @@ async def update_movie(
         movie.synopsis = payload["synopsis"]
     if "cover_url" in payload:
         movie.cover_url = payload["cover_url"] or None
+    if "production_sheet_url" in payload:
+        movie.production_sheet_url = payload["production_sheet_url"] or None
+    if "crew_credits" in payload and payload["crew_credits"] is not None:
+        entries = [CrewCreditEntry.model_validate(item) for item in payload["crew_credits"]]
+        movie.crew_credits = _normalize_crew_credits(entries)
     if "video_url" in payload:
         movie.video_url = payload["video_url"] or None
     if "stills" in payload and payload["stills"] is not None:
@@ -242,6 +267,52 @@ async def update_movie(
         target_type="movie",
         target_id=movie.id,
         summary=f"更新电影 {movie.title}",
+        request=request,
+    )
+    movie = await _reload(session, movie.id)
+    return _to_out(movie)
+
+
+@router.post(
+    "/parse-crew-sheet",
+    response_model=CrewCreditsParseOut,
+    dependencies=[Depends(require_permissions(Perm.MOVIE_WRITE))],
+)
+async def parse_crew_sheet(file: UploadFile = File(...)) -> CrewCreditsParseOut:
+    content = await file.read()
+    parsed = parse_crew_sheet_bytes(content, filename=file.filename or "")
+    entries = [CrewCreditEntry.model_validate(item) for item in parsed]
+    return CrewCreditsParseOut(crew_credits=entries, row_count=len(entries))
+
+
+@router.post(
+    "/{movie_id}/crew-sheet",
+    response_model=MovieOut,
+    dependencies=[Depends(require_permissions(Perm.MOVIE_WRITE))],
+)
+async def upload_crew_sheet(
+    movie_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session),
+    user: User = Depends(current_user),
+) -> MovieOut:
+    movie = await session.get(Movie, movie_id)
+    if not movie:
+        raise NotFound("电影不存在")
+
+    content = await file.read()
+    parsed = parse_crew_sheet_bytes(content, filename=file.filename or "")
+    movie.crew_credits = parsed
+
+    await session.flush()
+    await audit.record(
+        session,
+        actor=user,
+        action=AuditAction.update,
+        target_type="movie",
+        target_id=movie.id,
+        summary=f"上传演职员表 {movie.title}（{len(parsed)} 项）",
         request=request,
     )
     movie = await _reload(session, movie.id)

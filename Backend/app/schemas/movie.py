@@ -3,13 +3,49 @@
 from datetime import datetime
 from typing import Literal, Optional, List
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 WorkCategory = Literal["feature", "short", "media"]
 
 from app.config import settings
 
 _ALLOWED_STILL_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")
+
+
+class LocalizedLabel(BaseModel):
+    CN: str = Field(min_length=1, max_length=120)
+    EN: str = Field(default="", max_length=120)
+    JP: str = Field(default="", max_length=120)
+
+    @model_validator(mode="after")
+    def fill_missing_locales(self) -> "LocalizedLabel":
+        en = self.EN.strip() or self.CN
+        jp = self.JP.strip() or en
+        return self.model_copy(update={"EN": en, "JP": jp})
+
+
+class CrewCreditEntry(BaseModel):
+    role: LocalizedLabel
+    names: List[str] = Field(min_length=1)
+
+    @field_validator("names")
+    @classmethod
+    def validate_names(cls, value: List[str]) -> List[str]:
+        normalized = [name.strip() for name in value if name and str(name).strip()]
+        if not normalized:
+            raise ValueError("每个职位至少填写一位人员")
+        return normalized
+
+
+class CrewCreditsParseOut(BaseModel):
+    crew_credits: List[CrewCreditEntry]
+    row_count: int
+
+
+def _normalize_crew_credits(values: Optional[List[CrewCreditEntry]]) -> List[dict]:
+    if not values:
+        return []
+    return [entry.model_dump() for entry in values]
 
 
 def _validate_stills(values: List[str]) -> List[str]:
@@ -39,6 +75,8 @@ class MovieCreate(BaseModel):
     work_category: WorkCategory = "feature"
     synopsis: str = Field(default="")
     cover_url: Optional[str] = Field(default=None, max_length=500)
+    production_sheet_url: Optional[str] = Field(default=None, max_length=500)
+    crew_credits: List[CrewCreditEntry] = Field(default_factory=list)
     video_url: Optional[str] = Field(default=None, max_length=500)
     stills: List[str] = Field(default_factory=list, max_length=settings.movie_still_max_count)
     tags: List[str] = Field(default_factory=list)
@@ -62,6 +100,8 @@ class MovieUpdate(BaseModel):
     work_category: Optional[WorkCategory] = None
     synopsis: Optional[str] = None
     cover_url: Optional[str] = Field(default=None, max_length=500)
+    production_sheet_url: Optional[str] = Field(default=None, max_length=500)
+    crew_credits: Optional[List[CrewCreditEntry]] = None
     video_url: Optional[str] = Field(default=None, max_length=500)
     stills: Optional[List[str]] = None
     tags: Optional[List[str]] = None
@@ -89,6 +129,8 @@ class MovieOut(BaseModel):
     work_category: str
     synopsis: str
     cover_url: Optional[str]
+    production_sheet_url: Optional[str]
+    crew_credits: List[CrewCreditEntry] = Field(default_factory=list)
     video_url: Optional[str]
     stills: List[str]
     tags: List[str]
